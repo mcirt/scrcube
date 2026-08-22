@@ -1,16 +1,17 @@
-V2 GEOMETRY / NUMBERING REFERENCE
+V3 GEOMETRY NOTES
 
-Coordinates:
-x = 0..2
-y = 0..2
-z = 0..2 (0 bottom, 2 top)
+Persistent physical cube:
+- 3 x 3 x 3 = 27 cubelets
+- x = 0..2
+- y = 0..2
+- z = 0..2, with z=0 bottom and z=2 top
 
 Game-facing directions:
-TOP   = +Z
-LEFT  = +Y
-RIGHT = +X
+- top   = +Z
+- left  = +Y
+- right = +X
 
-TOP display positions:
+Top view positions:
 position 1 -> x0 y2
 position 2 -> x0 y1
 position 3 -> x0 y0
@@ -21,14 +22,14 @@ position 7 -> x2 y2
 position 8 -> x2 y1
 position 9 -> x2 y0
 
-Visual diamond:
+Visual top numbering:
         3
       2   6
     1   5   9
       4   8
         7
 
-LEFT positions:
+Left positions:
 10 x0 z2
 11 x1 z2
 12 x2 z2
@@ -39,7 +40,7 @@ LEFT positions:
 17 x1 z0
 18 x2 z0
 
-RIGHT positions:
+Right positions:
 19 y2 z2
 20 y1 z2
 21 y0 z2
@@ -49,10 +50,3 @@ RIGHT positions:
 25 y2 z0
 26 y1 z0
 27 y0 z0
-
-Cubelet IDs:
-Top initial layer    C01-C09
-Middle initial layer C10-C18
-Bottom initial layer C19-C27
-
-Cubelet IDs are physical identities. They do not change when gravity moves them.

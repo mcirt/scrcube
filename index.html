@@ -3,172 +3,120 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Custom 3D Boggle Solver v2</title>
+<title>Custom 3D Boggle Solver v3</title>
 <style>
 :root{
-  --bg:#f4f6f8; --card:#fff; --ink:#17202a; --muted:#667085;
-  --line:#d9dee7; --orange:#d97706; --orange2:#f59e0b;
-  --blue:#2563eb; --danger:#c2410c; --green:#15803d;
-  --new:#fff7d6; --path:#fde68a; --sel:#dbeafe;
+  --bg:#f3f5f8; --card:#ffffff; --ink:#17212b; --muted:#6b7280; --line:#d8dde6;
+  --orange:#d97706; --orange2:#f59e0b; --blue:#2563eb; --green:#15803d; --warn:#b45309;
+  --top:#fde68a; --topStroke:#b0891e;
+  --left:#c7e8fb; --leftStroke:#4292b8;
+  --right:#d6f0c2; --rightStroke:#6ea254;
+  --blank:#fff8dc; --path:#ffd166;
 }
 *{box-sizing:border-box}
-body{
-  margin:0;background:var(--bg);color:var(--ink);
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-}
-header{
-  background:linear-gradient(135deg,#f59e0b,#ea580c);
-  color:white;padding:20px 16px 18px;
-}
-.header-inner{width:min(1250px,100%);margin:auto}
-h1{margin:0;font-size:clamp(26px,4vw,40px)}
-header p{margin:5px 0 0;opacity:.94}
-main{
-  width:min(1250px,calc(100% - 20px));margin:16px auto 35px;
-  display:grid;grid-template-columns:minmax(0,1.25fr) minmax(330px,.75fr);gap:16px;
-}
-.card{
-  background:var(--card);border:1px solid var(--line);border-radius:16px;
-  box-shadow:0 8px 24px rgba(15,23,42,.06);padding:16px;
-}
-.topbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
-.topbar h2{margin:0;font-size:20px}
-.chips{display:flex;gap:7px;flex-wrap:wrap}
-.chip{
-  padding:5px 9px;border-radius:999px;border:1px solid #fed7aa;
-  background:#fff7ed;color:#9a3412;font-size:12px;font-weight:700;
-}
-.faces{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.face-panel{
-  border:1px solid var(--line);border-radius:14px;background:#fbfcfe;padding:12px;
-}
-.face-panel.top{grid-column:1/-1}
-.face-panel h3{margin:0 0 9px;color:var(--muted);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
-#topFace{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:280px;justify-content:center}
-.diamond-row{display:flex;justify-content:center;gap:8px}
-.diamond-row.row-2{gap:78px}
-.diamond-row.row-3{gap:38px}
-#leftFace,#rightFace{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.face-tile{
-  height:68px;min-width:58px;position:relative;border:2px solid #aeb7c4;
-  border-radius:11px;background:white;display:flex;align-items:center;justify-content:center;
-  flex-direction:column;cursor:pointer;transition:.12s;
-}
-.face-tile:hover{border-color:var(--orange2)}
-.face-tile.selected{box-shadow:0 0 0 3px rgba(37,99,235,.20);border-color:var(--blue)}
-.face-tile.needs-letter{background:var(--new);border-color:#f59e0b}
-.face-tile.path{background:var(--path);border-color:var(--orange)}
-.face-tile .pos-num{position:absolute;top:3px;left:6px;font-size:10px;font-weight:800;color:#94a3b8}
-.face-tile input{
-  width:100%;height:42px;border:0;outline:0;background:transparent;text-align:center;
-  font-size:27px;font-weight:850;text-transform:uppercase;color:#111827;
-}
-.face-tile small{font-size:9px;color:var(--muted);line-height:1}
-.empty-face{color:#a8b0bc;background:#f2f4f7;border-style:dashed;cursor:default}
-.empty-face .hole{font-size:24px}
-.step-badge{
-  position:absolute;right:-7px;top:-8px;min-width:22px;height:22px;padding:0 5px;
-  display:grid;place-items:center;border-radius:999px;background:#111827;color:#fff;font-size:11px;z-index:3
-}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:linear-gradient(135deg,#fb923c,#f97316);color:#fff;padding:18px 16px 16px}
+.header-inner{width:min(1280px,100%);margin:auto}
+h1{margin:0;font-size:clamp(28px,4vw,42px)}
+header p{margin:5px 0 0;opacity:.95}
+main{width:min(1280px,calc(100% - 20px));margin:16px auto 28px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(350px,.85fr);gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 26px rgba(15,23,42,.06);padding:16px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.topbar h2{margin:0;font-size:21px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:6px 10px;border-radius:999px;border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;font-size:12px;font-weight:800}
+.cube-wrap{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#ffffff,#f8fafc);padding:12px;min-height:500px}
+#cubeSvg{width:100%;height:auto;display:block;max-width:760px;margin:auto}
+.cube-outline{fill:none;stroke:rgba(100,116,139,.18);stroke-width:2}
+.svg-face polygon{stroke-width:2.5;stroke-linejoin:round}
+.svg-top polygon{fill:var(--top);stroke:var(--topStroke)}
+.svg-left polygon{fill:var(--left);stroke:var(--leftStroke)}
+.svg-right polygon{fill:var(--right);stroke:var(--rightStroke)}
+.svg-face.blank polygon{fill:var(--blank);stroke-dasharray:6 5}
+.svg-face.selected-face polygon{stroke:var(--blue);stroke-width:4}
+.svg-face.in-path polygon{fill:var(--path)}
+.pos-label{font-size:12px;font-weight:900;fill:#1f2937}
+.letter-label{font-size:28px;font-weight:900;fill:#4c1d95}
+.cube-label{font-size:10px;font-weight:700;fill:rgba(17,24,39,.62)}
+.step-circle{fill:#111827}
+.step-number{font-size:12px;font-weight:900;fill:white}
 .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-button,.file-label{
-  font:inherit;border:1px solid var(--line);background:white;border-radius:10px;padding:9px 12px;
-  cursor:pointer;font-weight:750;color:var(--ink)
-}
+button,.file-label{font:inherit;border:1px solid var(--line);background:white;border-radius:11px;padding:10px 13px;cursor:pointer;font-weight:800;color:var(--ink)}
 button:hover,.file-label:hover{filter:brightness(.98)}
 button:disabled{opacity:.45;cursor:not-allowed}
 .primary{background:var(--orange);border-color:var(--orange);color:white}
 .danger{background:#fff7ed;border-color:#fdba74;color:#9a3412}
-.file-label input{display:none}
-#status{min-height:22px;margin-top:10px;color:var(--muted);font-size:13px}
+#status{min-height:22px;margin-top:10px;font-size:13px;color:var(--muted)}
 #status.ok{color:var(--green)}
-#status.warn{color:#b45309;font-weight:650}
-.subcard{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
-.subcard h3{margin:0 0 9px;font-size:15px}
-.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-.layer{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fbfcfe}
-.layer h4{font-size:12px;margin:0 0 6px;display:flex;justify-content:space-between;color:#475467}
+#status.warn{color:var(--warn);font-weight:700}
+.split-panels{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.subcard{border:1px solid var(--line);border-radius:14px;background:#fbfcfe;padding:12px}
+.subcard h3{margin:0 0 8px;font-size:15px}
+.muted,.hint{font-size:12px;color:var(--muted);line-height:1.45}
+.sel-head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.sel-head strong{font-size:20px}
+.sel-head span{font-size:11px;color:var(--muted)}
+.face-mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.mini{border:1px solid var(--line);border-radius:9px;padding:8px;text-align:center;background:#fff;cursor:pointer}
+.mini.visible{background:#fff7ed;border-color:#fdba74}
+.mini.active{outline:3px solid rgba(59,130,246,.18);border-color:#3b82f6}
+.mini span,.mini small{display:block;color:var(--muted);font-size:10px}
+.mini b{display:block;font-size:20px;margin:2px 0}
+.selected-face-editor{margin-top:10px}
+.edit-row{display:flex;gap:8px;align-items:center;margin-top:6px}
+#faceLetterInput{width:70px;height:42px;border:1px solid var(--line);border-radius:10px;font-size:26px;font-weight:900;text-align:center;text-transform:uppercase}
+.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.layer{border:1px solid var(--line);border-radius:11px;background:#fff;padding:8px}
+.layer h4{margin:0 0 6px;font-size:12px;display:flex;justify-content:space-between;color:#475467}
 .layer h4 span{font-weight:500;color:#98a2b3}
 .layer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
-.cube-cell{padding:7px 3px;border-radius:7px;min-height:47px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.cube-cell strong{font-size:12px}
-.cube-cell small{font-size:8px;color:#98a2b3;font-weight:500}
-.cube-cell.selected{background:var(--sel);border-color:var(--blue)}
-.hole-cell{background:#f2f4f7;border-style:dashed}
-.cube-info-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.cube-info-head strong{font-size:20px}
-.cube-info-head span{font-size:11px;color:var(--muted)}
-.mini-faces{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px}
-.mini-faces>div{border:1px solid var(--line);border-radius:9px;padding:7px;text-align:center;background:#f8fafc}
-.mini-faces>div.is-visible{background:#fff7ed;border-color:#fdba74}
-.mini-faces span,.mini-faces small{display:block;color:var(--muted);font-size:10px}
-.mini-faces b{display:block;font-size:20px;margin:2px}
-.hint,.muted{font-size:12px;color:var(--muted)}
+.layer-cell{min-height:50px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px}
+.layer-cell strong{font-size:12px}
+.layer-cell small{font-size:8px;color:#98a2b3}
+.layer-cell.selected{background:#dbeafe;border-color:#3b82f6}
+.layer-cell.empty{background:#f3f4f6;border-style:dashed}
 .results-head{display:flex;justify-content:space-between;gap:8px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:10px}
-.results-head h2{margin:0;font-size:20px}
+.results-head h2{margin:0;font-size:21px}
 #wordCount{font-size:12px;color:var(--muted)}
-#results{max-height:74vh;overflow:auto;padding-right:3px}
-.empty-results{padding:18px 2px;color:var(--muted);font-size:13px}
+#results{max-height:76vh;overflow:auto;padding-right:3px}
+.empty-results{padding:16px 2px;color:var(--muted);font-size:13px}
 .result-group h3{font-size:13px;color:#9a3412;margin:17px 0 7px}
-.word-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.word-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .word-btn{text-align:left;padding:8px 9px;display:flex;flex-direction:column;gap:1px}
-.word-btn strong{font-size:14px;letter-spacing:.03em}
-.word-btn small{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.legend{
-  margin-top:12px;padding:10px 12px;border-radius:10px;background:#f8fafc;color:#667085;
-  font-size:12px;line-height:1.45
-}
-footer{width:min(1250px,calc(100% - 20px));margin:0 auto 25px;text-align:center;color:#98a2b3;font-size:11px}
-@media(max-width:900px){
-  main{grid-template-columns:1fr}
-  #results{max-height:none}
-}
-@media(max-width:620px){
-  .faces{grid-template-columns:1fr}
-  .face-panel.top{grid-column:auto}
-  .layers{grid-template-columns:1fr}
-  .layer-grid{grid-template-columns:repeat(9,1fr)}
-  .cube-cell{min-height:42px;padding:5px 1px}
-  .cube-cell small{display:none}
-  .word-list{grid-template-columns:1fr}
-  .diamond-row.row-2{gap:55px}
-  .diamond-row.row-3{gap:23px}
-  .face-tile{height:62px;min-width:52px}
-}
+.word-btn strong{font-size:14px}
+.word-btn small{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend{margin-top:12px;padding:10px 12px;border-radius:10px;background:#f8fafc;color:#667085;font-size:12px;line-height:1.5}
+.file-label input{display:none}
+footer{width:min(1280px,calc(100% - 20px));margin:0 auto 24px;text-align:center;color:#98a2b3;font-size:11px}
+@media(max-width:980px){main{grid-template-columns:1fr} #results{max-height:none}}
+@media(max-width:700px){.split-panels{grid-template-columns:1fr}.layers{grid-template-columns:1fr}.word-list{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
   <div class="header-inner">
-    <h1>Custom 3D Boggle Solver v2</h1>
-    <p>27 physical cubelets · persistent face letters · manual removal · gravity · 3–8 letter word finder</p>
+    <h1>Custom 3D Boggle Solver v3</h1>
+    <p>Visual cube editor + gravity + persistent cubelet face letters + 8→3 word finder</p>
   </div>
 </header>
 
 <main>
   <section class="card">
     <div class="topbar">
-      <h2>Current exposed faces</h2>
+      <h2>Isometric cube</h2>
       <div class="chips">
         <span class="chip" id="cubeCount">27 / 27 cubelets</span>
         <span class="chip" id="visibleCount">27 visible faces</span>
-        <span class="chip" id="blankCount">27 need letters</span>
+        <span class="chip" id="blankCount">27 blank faces</span>
         <span class="chip" id="dictionaryCount"></span>
       </div>
     </div>
 
-    <div class="faces">
-      <div class="face-panel top">
-        <h3>Top face — your 1–9 numbering</h3>
-        <div id="topFace"></div>
-      </div>
-      <div class="face-panel">
-        <h3>Left face — positions 10–18</h3>
-        <div id="leftFace"></div>
-      </div>
-      <div class="face-panel">
-        <h3>Right face — positions 19–27</h3>
-        <div id="rightFace"></div>
+    <div class="cube-wrap">
+      <svg id="cubeSvg" viewBox="0 0 710 470" aria-label="3D boggle cube"></svg>
+      <div class="hint" style="margin-top:8px">
+        Click a visible face on the cube and type a letter. The face number shown on the tile is the game position.
+        Top uses your numbering: 3 / 2 6 / 1 5 9 / 4 8 / 7.
       </div>
     </div>
 
@@ -177,26 +125,23 @@ footer{width:min(1250px,calc(100% - 20px));margin:0 auto 25px;text-align:center;
       <button id="removeBtn" class="danger" type="button" disabled>Remove selected cubelet</button>
       <button id="undoBtn" type="button" disabled>Undo</button>
       <button id="exampleBtn" type="button">Load Example</button>
+      <button id="resetBtn" type="button">Reset cube</button>
+      <button id="exportBtn" type="button">Export state</button>
+      <label class="file-label">Import state<input id="importFile" type="file" accept=".json,application/json"></label>
     </div>
     <div id="status"></div>
 
-    <div class="subcard">
-      <h3>Physical 3×3×3 cube</h3>
-      <div class="legend">
-        Select any cubelet here or by clicking one of its visible letter faces. When you remove it,
-        every cubelet above it in that same vertical column falls down. The cubelet ID and all letters
-        already assigned to that cubelet move with it.
+    <div class="split-panels">
+      <div class="subcard">
+        <h3>Selected cubelet / face</h3>
+        <div id="selectionPanel"></div>
       </div>
-      <div id="layers" class="layers" style="margin-top:9px"></div>
-    </div>
-
-    <div class="subcard">
-      <h3>Selected cubelet</h3>
-      <div id="cubeInfo"></div>
-      <div class="controls">
-        <button id="resetBtn" type="button">Reset whole cube</button>
-        <button id="exportBtn" type="button">Export state</button>
-        <label class="file-label">Import state<input id="importFile" type="file" accept=".json,application/json"></label>
+      <div class="subcard">
+        <h3>Physical 3×3×3 layers</h3>
+        <div class="hint" style="margin-bottom:8px">
+          Removing a cubelet makes every cubelet above it in that same vertical column fall down.
+        </div>
+        <div id="layers" class="layers"></div>
       </div>
     </div>
   </section>
@@ -210,14 +155,18 @@ footer{width:min(1250px,calc(100% - 20px));margin:0 auto 25px;text-align:center;
       <div class="empty-results">Press <strong>Find Words</strong> after the visible faces have letters.</div>
     </div>
     <div class="legend">
-      Finds words from <strong>8 letters down to 3</strong>. A next letter must be on a currently visible
-      face tile touching the previous face tile by a side or corner. Click a result to highlight its path.
+      <strong>Rules used:</strong><br>
+      • Start from any visible face letter.<br>
+      • The next face must touch the previous one by a side or corner.<br>
+      • A visible face tile cannot be reused in the same word.<br>
+      • Results are grouped from <strong>8 letters down to 3</strong>.<br>
+      • Click a word to highlight its path on the cube.
     </div>
   </aside>
 </main>
 
 <footer>
-  v2 dynamic cube build · offline HTML/JavaScript · SCOWL-based dictionary · see SCOWL-Copyright.txt
+  v3 visual cube build · offline HTML/JavaScript · SCOWL-based dictionary · see SCOWL-Copyright.txt
 </footer>
 
 <script src="dictionary.js"></script>
