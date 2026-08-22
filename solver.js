@@ -1,104 +1,108 @@
+
 "use strict";
 
-const SIZE = 3;
-const MIN_LEN = 3;
-const MAX_LEN = 8;
-const FACE_DIRS = ["top", "left", "right"];
+var SIZE = 3;
+var MIN_LEN = 3;
+var MAX_LEN = 8;
 
-const DIR = {
-  top:   {dx:0, dy:0, dz:1, label:"Top"},
-  left:  {dx:0, dy:1, dz:0, label:"Left"},
-  right: {dx:1, dy:0, dz:0, label:"Right"}
+var DIR = {
+  top:   {label:"Top"},
+  left:  {label:"Left"},
+  right: {label:"Right"}
 };
 
-const TOP_POS = {
+var TOP_POS = {
   1:{x:0,y:2}, 2:{x:0,y:1}, 3:{x:0,y:0},
   4:{x:1,y:2}, 5:{x:1,y:1}, 6:{x:1,y:0},
   7:{x:2,y:2}, 8:{x:2,y:1}, 9:{x:2,y:0}
 };
-const LEFT_POS = {
+var LEFT_POS = {
   10:{x:0,z:2}, 11:{x:1,z:2}, 12:{x:2,z:2},
   13:{x:0,z:1}, 14:{x:1,z:1}, 15:{x:2,z:1},
   16:{x:0,z:0}, 17:{x:1,z:0}, 18:{x:2,z:0}
 };
-const RIGHT_POS = {
+var RIGHT_POS = {
   19:{y:2,z:2}, 20:{y:1,z:2}, 21:{y:0,z:2},
   22:{y:2,z:1}, 23:{y:1,z:1}, 24:{y:0,z:1},
   25:{y:2,z:0}, 26:{y:1,z:0}, 27:{y:0,z:0}
 };
 
-let state = null;
-let trie = null;
-let history = [];
-let selectedFaceKey = null;
-let selectedCubeId = null;
-let highlightedPathKeys = [];
+var state = null;
+var trie = null;
+var history = [];
+var selectedFaceKey = null;
+var selectedCubeId = null;
+var highlightedPathKeys = [];
+var started = false;
 
-function key(x,y,z) { return `${x},${y},${z}`; }
+function posKey(x,y,z){ return x + "," + y + "," + z; }
 
 function cubeNumberForInitialPosition(x,y,z) {
-  const layer = 2 - z;
+  var layer = 2 - z;
   return layer * 9 + y * 3 + x + 1;
 }
 
 function newState() {
-  const cubes = {};
-  const occupancy = {};
-  for (let z=0; z<SIZE; z++) {
-    for (let y=0; y<SIZE; y++) {
-      for (let x=0; x<SIZE; x++) {
-        const n = cubeNumberForInitialPosition(x,y,z);
-        const id = `C${String(n).padStart(2,"0")}`;
-        cubes[id] = { id, faces: {top:"", left:"", right:""} };
-        occupancy[key(x,y,z)] = id;
+  var cubes = {};
+  var occupancy = {};
+  var z,y,x,n,id;
+  for (z=0; z<SIZE; z++) {
+    for (y=0; y<SIZE; y++) {
+      for (x=0; x<SIZE; x++) {
+        n = cubeNumberForInitialPosition(x,y,z);
+        id = "C" + String(n).padStart(2,"0");
+        cubes[id] = {id:id, faces:{top:"",left:"",right:""}};
+        occupancy[posKey(x,y,z)] = id;
       }
     }
   }
-  return { cubes, occupancy };
+  return {cubes:cubes, occupancy:occupancy};
 }
 
-function cloneState(s) { return JSON.parse(JSON.stringify(s)); }
-
-function pushHistory() {
-  history.push(cloneState(state));
-  if (history.length > 40) history.shift();
-  updateUndoState();
-}
-
-function updateUndoState() {
-  const btn = document.getElementById("undoBtn");
-  if (btn) btn.disabled = history.length === 0;
-}
+function cloneState(s){ return JSON.parse(JSON.stringify(s)); }
 
 function saveLocal() {
-  try { localStorage.setItem("custom3dBoggleV3", JSON.stringify(state)); } catch (_) {}
-}
-function loadLocal() {
   try {
-    const raw = localStorage.getItem("custom3dBoggleV3");
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.cubes || !parsed?.occupancy) return false;
-    state = parsed;
-    return true;
-  } catch (_) { return false; }
+    localStorage.setItem("custom3dBoggleV4State", JSON.stringify(state));
+    localStorage.setItem("custom3dBoggleV4Started", started ? "1" : "0");
+  } catch(e) {}
 }
 
-function setStatus(msg, cls="") {
-  const el = document.getElementById("status");
-  el.textContent = msg;
-  el.className = cls;
+function loadLocal() {
+  try {
+    var raw = localStorage.getItem("custom3dBoggleV4State");
+    if (!raw) return false;
+    var parsed = JSON.parse(raw);
+    if (!parsed || !parsed.cubes || !parsed.occupancy) return false;
+    state = parsed;
+    started = localStorage.getItem("custom3dBoggleV4Started") === "1";
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function pushHistory() {
+  history.push({state:cloneState(state), started:started});
+  if (history.length > 40) history.shift();
+  updateUndo();
+}
+
+function updateUndo() {
+  var b = document.getElementById("undoBtn");
+  if (b) b.disabled = history.length === 0;
 }
 
 function getCubeAt(x,y,z) {
-  return state.occupancy[key(x,y,z)] || null;
+  return state.occupancy[posKey(x,y,z)] || null;
 }
 
 function findCubePosition(cubeId) {
-  for (const [pos, id] of Object.entries(state.occupancy)) {
-    if (id === cubeId) {
-      const [x,y,z] = pos.split(",").map(Number);
-      return {x,y,z};
+  var pos;
+  for (pos in state.occupancy) {
+    if (state.occupancy[pos] === cubeId) {
+      var p = pos.split(",");
+      return {x:Number(p[0]), y:Number(p[1]), z:Number(p[2])};
     }
   }
   return null;
@@ -106,38 +110,42 @@ function findCubePosition(cubeId) {
 
 function faceNode(cubeId, dir, x,y,z, viewPos) {
   return {
-    key: `${cubeId}:${dir}`,
-    cubeId, dir, x,y,z, viewPos,
-    letter: (state.cubes[cubeId]?.faces?.[dir] || "").toLowerCase()
+    key:cubeId + ":" + dir,
+    cubeId:cubeId,
+    dir:dir,
+    x:x,y:y,z:z,
+    viewPos:viewPos,
+    letter:(state.cubes[cubeId].faces[dir] || "").toLowerCase()
   };
 }
 
 function currentVisibleFaces() {
-  const nodes = [];
+  var nodes = [];
+  var posStr,p,z,y,x,id,chosen;
 
-  for (const [posStr, p] of Object.entries(TOP_POS)) {
-    let chosen = null;
-    for (let z = SIZE - 1; z >= 0; z--) {
-      const id = getCubeAt(p.x,p.y,z);
-      if (id) { chosen = faceNode(id, "top", p.x,p.y,z, Number(posStr)); break; }
+  for (posStr in TOP_POS) {
+    p = TOP_POS[posStr]; chosen = null;
+    for (z=2; z>=0; z--) {
+      id = getCubeAt(p.x,p.y,z);
+      if (id) { chosen = faceNode(id,"top",p.x,p.y,z,Number(posStr)); break; }
     }
     if (chosen) nodes.push(chosen);
   }
 
-  for (const [posStr, p] of Object.entries(LEFT_POS)) {
-    let chosen = null;
-    for (let y = SIZE - 1; y >= 0; y--) {
-      const id = getCubeAt(p.x,y,p.z);
-      if (id) { chosen = faceNode(id, "left", p.x,y,p.z, Number(posStr)); break; }
+  for (posStr in LEFT_POS) {
+    p = LEFT_POS[posStr]; chosen = null;
+    for (y=2; y>=0; y--) {
+      id = getCubeAt(p.x,y,p.z);
+      if (id) { chosen = faceNode(id,"left",p.x,y,p.z,Number(posStr)); break; }
     }
     if (chosen) nodes.push(chosen);
   }
 
-  for (const [posStr, p] of Object.entries(RIGHT_POS)) {
-    let chosen = null;
-    for (let x = SIZE - 1; x >= 0; x--) {
-      const id = getCubeAt(x,p.y,p.z);
-      if (id) { chosen = faceNode(id, "right", x,p.y,p.z, Number(posStr)); break; }
+  for (posStr in RIGHT_POS) {
+    p = RIGHT_POS[posStr]; chosen = null;
+    for (x=2; x>=0; x--) {
+      id = getCubeAt(x,p.y,p.z);
+      if (id) { chosen = faceNode(id,"right",x,p.y,p.z,Number(posStr)); break; }
     }
     if (chosen) nodes.push(chosen);
   }
@@ -145,31 +153,33 @@ function currentVisibleFaces() {
   return nodes;
 }
 
-function bboxForFace(node) {
-  const {x,y,z,dir} = node;
-  if (dir === "top") return [[x,x+1],[y,y+1],[z+1,z+1]];
-  if (dir === "left") return [[x,x+1],[y+1,y+1],[z,z+1]];
-  return [[x+1,x+1],[y,y+1],[z,z+1]];
+function bboxForFace(n) {
+  if (n.dir === "top") return [[n.x,n.x+1],[n.y,n.y+1],[n.z+1,n.z+1]];
+  if (n.dir === "left") return [[n.x,n.x+1],[n.y+1,n.y+1],[n.z,n.z+1]];
+  return [[n.x+1,n.x+1],[n.y,n.y+1],[n.z,n.z+1]];
 }
 
 function boxesTouch(a,b) {
-  for (let axis=0; axis<3; axis++) {
-    const lo = Math.max(a[axis][0], b[axis][0]);
-    const hi = Math.min(a[axis][1], b[axis][1]);
+  var axis,lo,hi;
+  for (axis=0; axis<3; axis++) {
+    lo = Math.max(a[axis][0], b[axis][0]);
+    hi = Math.min(a[axis][1], b[axis][1]);
     if (lo > hi) return false;
   }
   return true;
 }
 
 function buildAdjacency(nodes) {
-  const adj = new Map(nodes.map(n => [n.key, []]));
-  for (let i=0; i<nodes.length; i++) {
-    const a = nodes[i], ab = bboxForFace(a);
-    for (let j=i+1; j<nodes.length; j++) {
-      const b = nodes[j];
-      if (boxesTouch(ab, bboxForFace(b))) {
-        adj.get(a.key).push(b.key);
-        adj.get(b.key).push(a.key);
+  var adj = {};
+  var i,j,a,b,ab;
+  for (i=0; i<nodes.length; i++) adj[nodes[i].key] = [];
+  for (i=0; i<nodes.length; i++) {
+    a = nodes[i]; ab = bboxForFace(a);
+    for (j=i+1; j<nodes.length; j++) {
+      b = nodes[j];
+      if (boxesTouch(ab,bboxForFace(b))) {
+        adj[a.key].push(b.key);
+        adj[b.key].push(a.key);
       }
     }
   }
@@ -177,13 +187,15 @@ function buildAdjacency(nodes) {
 }
 
 function makeTrie(words) {
-  const root = Object.create(null);
-  for (const raw of words || []) {
-    const w = raw.trim().toLowerCase();
+  var root = {};
+  var i,w,j,ch,node;
+  for (i=0; i<words.length; i++) {
+    w = String(words[i]).trim().toLowerCase();
     if (w.length < MIN_LEN || w.length > MAX_LEN || !/^[a-z]+$/.test(w)) continue;
-    let node = root;
-    for (const ch of w) {
-      node[ch] ??= Object.create(null);
+    node = root;
+    for (j=0; j<w.length; j++) {
+      ch = w[j];
+      if (!node[ch]) node[ch] = {};
       node = node[ch];
     }
     node.$ = true;
@@ -193,544 +205,492 @@ function makeTrie(words) {
 
 function solveCurrentBoard() {
   if (!trie) trie = makeTrie(window.BOGGLE_WORDS || []);
-  const nodes = currentVisibleFaces().filter(n => /^[a-z]$/.test(n.letter));
-  const byKey = new Map(nodes.map(n => [n.key,n]));
-  const adj = buildAdjacency(nodes);
-  const found = new Map();
+  var all = currentVisibleFaces();
+  var nodes = all.filter(function(n){ return /^[a-z]$/.test(n.letter); });
+  var byKey = {}, i;
+  for (i=0; i<nodes.length; i++) byKey[nodes[i].key] = nodes[i];
+  var adj = buildAdjacency(nodes);
+  var found = {};
 
-  function dfs(nodeKey, trieNode, prefix, used, path) {
-    const node = byKey.get(nodeKey);
+  function dfs(nodeKey,trieNode,prefix,used,path) {
+    var node = byKey[nodeKey];
     if (!node) return;
-    const nextTrie = trieNode[node.letter];
+    var nextTrie = trieNode[node.letter];
     if (!nextTrie) return;
-    const word = prefix + node.letter;
-    const nextPath = path.concat(node);
 
-    if (word.length >= MIN_LEN && nextTrie.$ && !found.has(word)) found.set(word, nextPath);
+    var word = prefix + node.letter;
+    var nextPath = path.concat([node]);
+
+    if (word.length >= MIN_LEN && nextTrie.$ && !found[word]) {
+      found[word] = nextPath;
+    }
     if (word.length >= MAX_LEN) return;
 
-    used.add(nodeKey);
-    for (const nextKey of adj.get(nodeKey) || []) {
-      if (!used.has(nextKey)) dfs(nextKey, nextTrie, word, used, nextPath);
+    used[nodeKey] = true;
+    var nbrs = adj[nodeKey] || [];
+    var k,nk;
+    for (k=0; k<nbrs.length; k++) {
+      nk = nbrs[k];
+      if (!used[nk]) dfs(nk,nextTrie,word,used,nextPath);
     }
-    used.delete(nodeKey);
+    delete used[nodeKey];
   }
 
-  for (const node of nodes) dfs(node.key, trie, "", new Set(), []);
+  for (i=0; i<nodes.length; i++) dfs(nodes[i].key,trie,"",{},[]);
 
-  return [...found.entries()]
-    .map(([word, path]) => ({word, path}))
-    .sort((a,b) => b.word.length - a.word.length || a.word.localeCompare(b.word));
+  var arr = Object.keys(found).map(function(w){ return {word:w,path:found[w]}; });
+  arr.sort(function(a,b){
+    if (b.word.length !== a.word.length) return b.word.length - a.word.length;
+    return a.word.localeCompare(b.word);
+  });
+  return arr;
 }
 
 function applyGravity() {
-  const newOcc = {};
-  for (let x=0; x<SIZE; x++) {
-    for (let y=0; y<SIZE; y++) {
-      const stack = [];
-      for (let z=0; z<SIZE; z++) {
-        const id = getCubeAt(x,y,z);
+  var newOcc = {};
+  var x,y,z,id,stack;
+  for (x=0; x<3; x++) {
+    for (y=0; y<3; y++) {
+      stack = [];
+      for (z=0; z<3; z++) {
+        id = getCubeAt(x,y,z);
         if (id) stack.push(id);
       }
-      for (let z=0; z<stack.length; z++) newOcc[key(x,y,z)] = stack[z];
+      for (z=0; z<stack.length; z++) newOcc[posKey(x,y,z)] = stack[z];
     }
   }
   state.occupancy = newOcc;
 }
 
-function removeCube(cubeId) {
-  const pos = findCubePosition(cubeId);
-  if (!pos) return;
+function removeSelectedCube() {
+  if (!selectedCubeId) return;
+  var p = findCubePosition(selectedCubeId);
+  if (!p) return;
   pushHistory();
-  delete state.occupancy[key(pos.x,pos.y,pos.z)];
+  delete state.occupancy[posKey(p.x,p.y,p.z)];
   applyGravity();
-  if (selectedCubeId === cubeId) selectedCubeId = null;
-  if (selectedFaceKey && selectedFaceKey.startsWith(cubeId + ":")) selectedFaceKey = null;
+  selectedFaceKey = null;
+  selectedCubeId = null;
   highlightedPathKeys = [];
   saveLocal();
-  renderAll(false);
+  renderAll();
   clearResults();
-  setStatus(`${cubeId} removed. Gravity applied.`, "ok");
+  setStatus("Cubelet removed. Gravity applied.", "ok");
 }
 
 function undo() {
   if (!history.length) return;
-  state = history.pop();
+  var h = history.pop();
+  state = h.state;
+  started = h.started;
   selectedFaceKey = null;
   selectedCubeId = null;
   highlightedPathKeys = [];
   saveLocal();
-  renderAll(false);
+  renderAll();
   clearResults();
-  updateUndoState();
-  setStatus("Undid the last board change.", "ok");
+  setStatus("Undid the last change.", "ok");
 }
 
-function resetEverything() {
-  if (!confirm("Reset the entire cube and erase all letters?")) return;
+function resetAll() {
+  if (!confirm("Reset the whole cube and erase all letters?")) return;
   pushHistory();
   state = newState();
+  started = false;
   selectedFaceKey = null;
   selectedCubeId = null;
   highlightedPathKeys = [];
   saveLocal();
-  renderAll(false);
+  renderAll();
   clearResults();
-  setStatus("Cube reset.", "ok");
+  setStatus("Reset. Enter the 27 starting letters.", "ok");
 }
 
-function loadExampleLetters() {
-  const example = {
-    1:"E",2:"O",3:"A",4:"T",5:"S",6:"A",7:"Z",8:"L",9:"H",
-    10:"E",11:"P",12:"R",13:"R",14:"H",15:"I",16:"I",17:"H",18:"C",
-    19:"H",20:"N",21:"S",22:"S",23:"F",24:"F",25:"A",26:"A",27:"S"
-  };
-  pushHistory();
-  for (const node of currentVisibleFaces()) {
-    state.cubes[node.cubeId].faces[node.dir] = example[node.viewPos] || "";
-  }
-  saveLocal();
-  highlightedPathKeys = [];
-  renderAll(false);
-  clearResults();
-  setStatus("Example letters loaded.", "ok");
+function setStatus(msg, cls) {
+  var e = document.getElementById("status");
+  e.textContent = msg;
+  e.className = cls || "";
 }
 
-function exportState() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "3d-boggle-cube-state.json";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
-  setStatus("State exported.", "ok");
+function nodeForViewPos(pos) {
+  var nodes = currentVisibleFaces();
+  var i;
+  for (i=0; i<nodes.length; i++) if (nodes[i].viewPos === pos) return nodes[i];
+  return null;
 }
 
-function importState(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const parsed = JSON.parse(reader.result);
-      if (!parsed?.cubes || !parsed?.occupancy) throw new Error("Not a valid state file.");
-      pushHistory();
-      state = parsed;
-      selectedFaceKey = null;
-      selectedCubeId = null;
-      highlightedPathKeys = [];
-      saveLocal();
-      renderAll(false);
-      clearResults();
-      setStatus("State imported.", "ok");
-    } catch (e) {
-      setStatus(`Import failed: ${e.message}`, "warn");
-    }
-  };
-  reader.readAsText(file);
-}
-
-function selectedNode() {
-  return currentVisibleFaces().find(n => n.key === selectedFaceKey) || null;
-}
-
-function setSelectedNode(node) {
-  selectedFaceKey = node ? node.key : null;
-  selectedCubeId = node ? node.cubeId : null;
-  renderAll(false);
-}
-
-function updateSelectedLetter(newValue) {
-  const node = selectedNode();
+function writeLetterToNode(node, value) {
   if (!node) return;
-  const cleaned = (newValue || "").replace(/[^a-zA-Z]/g, "").slice(-1).toUpperCase();
-  state.cubes[node.cubeId].faces[node.dir] = cleaned;
+  var clean = String(value || "").replace(/[^A-Za-z]/g,"").slice(-1).toUpperCase();
+  state.cubes[node.cubeId].faces[node.dir] = clean;
   saveLocal();
+}
+
+function initialInputsToCube() {
+  var allFilled = true;
+  var pos,input,node,val;
+  for (pos=1; pos<=27; pos++) {
+    input = document.querySelector('[data-initial-pos="'+pos+'"]');
+    val = input ? input.value.trim().toUpperCase() : "";
+    if (!/^[A-Z]$/.test(val)) {
+      allFilled = false;
+      if (input) input.classList.add("missing");
+    } else if (input) {
+      input.classList.remove("missing");
+    }
+  }
+
+  if (!allFilled) {
+    setStatus("Fill all 27 starting letters first.", "warn");
+    var first = document.querySelector(".initial-input.missing");
+    if (first) first.focus();
+    return;
+  }
+
+  pushHistory();
+  for (pos=1; pos<=27; pos++) {
+    input = document.querySelector('[data-initial-pos="'+pos+'"]');
+    node = nodeForViewPos(pos);
+    writeLetterToNode(node,input.value);
+  }
+  started = true;
+  saveLocal();
+  renderAll();
+  setStatus("Starting cube loaded. Tap any visible face later to change or add a letter.", "ok");
+}
+
+function populateInitialInputsFromState() {
+  var pos,node,input,val;
+  for (pos=1; pos<=27; pos++) {
+    input = document.querySelector('[data-initial-pos="'+pos+'"]');
+    node = nodeForViewPos(pos);
+    val = node ? (state.cubes[node.cubeId].faces[node.dir] || "") : "";
+    if (input) input.value = val;
+  }
+}
+
+function wireInitialInputs() {
+  var inputs = Array.prototype.slice.call(document.querySelectorAll(".initial-input"));
+  inputs.forEach(function(inp, idx){
+    inp.addEventListener("input", function(){
+      inp.value = inp.value.replace(/[^A-Za-z]/g,"").slice(-1).toUpperCase();
+      inp.classList.remove("missing");
+      if (inp.value && inputs[idx+1]) inputs[idx+1].focus();
+    });
+    inp.addEventListener("focus", function(){ inp.select(); });
+  });
+}
+
+function quickInputForNode(node) {
+  if (!node) return;
+  selectedFaceKey = node.key;
+  selectedCubeId = node.cubeId;
+  renderCubeSvg();
+  renderQuickBar();
+
+  var input = document.getElementById("quickLetterInput");
+  input.value = state.cubes[node.cubeId].faces[node.dir] || "";
+  input.dataset.nodekey = node.key;
+  input.focus();
+  input.select();
+}
+
+function saveQuickLetter() {
+  var input = document.getElementById("quickLetterInput");
+  var key = input.dataset.nodekey;
+  if (!key) return;
+  var nodes = currentVisibleFaces();
+  var node = null, i;
+  for (i=0; i<nodes.length; i++) if (nodes[i].key === key) { node = nodes[i]; break; }
+  if (!node) return;
+  writeLetterToNode(node,input.value);
   highlightedPathKeys = [];
-  renderAll(false);
+  renderAll();
   clearResults();
+}
+
+function renderQuickBar() {
+  var bar = document.getElementById("quickBar");
+  var label = document.getElementById("quickFaceLabel");
+  var node = null, nodes=currentVisibleFaces(), i;
+  for (i=0; i<nodes.length; i++) if (nodes[i].key === selectedFaceKey) {node=nodes[i];break;}
+  if (!node) {
+    bar.classList.remove("show");
+    return;
+  }
+  label.textContent = "Position " + node.viewPos + " · " + DIR[node.dir].label;
+  bar.classList.add("show");
+}
+
+function runSolver() {
+  var visible = currentVisibleFaces();
+  var blanks = visible.filter(function(n){ return !(state.cubes[n.cubeId].faces[n.dir] || ""); });
+  if (blanks.length) {
+    setStatus(blanks.length + " visible face" + (blanks.length===1 ? " is" : "s are") + " blank. Tap a blank face and type its letter.", "warn");
+    return;
+  }
+  var results = solveCurrentBoard();
+  renderResults(results);
+  setStatus("Found " + results.length.toLocaleString() + " words.", "ok");
 }
 
 function clearResults() {
   document.getElementById("wordCount").textContent = "";
-  document.getElementById("results").innerHTML =
-    '<div class="empty-results">Press <strong>Find Words</strong> after the visible faces have letters.</div>';
-}
-
-function runSolver() {
-  const visible = currentVisibleFaces();
-  const blanks = visible.filter(n => !(state.cubes[n.cubeId].faces[n.dir] || ""));
-  if (blanks.length) {
-    setStatus(`${blanks.length} visible face${blanks.length===1 ? " is" : "s are"} blank. Fill them first.`, "warn");
-    if (!selectedFaceKey && blanks[0]) setSelectedNode(blanks[0]);
-    return;
-  }
-  setStatus("Searching…");
-  const results = solveCurrentBoard();
-  renderResults(results);
-  setStatus(`Done. Found ${results.length.toLocaleString()} words.`, "ok");
+  document.getElementById("results").innerHTML = '<div class="empty-results">Press <strong>Find Words</strong> when ready.</div>';
 }
 
 function renderResults(results) {
-  const out = document.getElementById("results");
-  document.getElementById("wordCount").textContent =
-    `${results.length.toLocaleString()} word${results.length===1 ? "" : "s"} found`;
+  var out = document.getElementById("results");
   out.innerHTML = "";
+  document.getElementById("wordCount").textContent =
+    results.length.toLocaleString() + " word" + (results.length===1 ? "" : "s");
+
   if (!results.length) {
     out.innerHTML = '<div class="empty-results">No 3–8 letter words found.</div>';
     return;
   }
 
-  for (let len=MAX_LEN; len>=MIN_LEN; len--) {
-    const group = results.filter(r => r.word.length === len);
+  var len,group,section,h,list,i,item,btn;
+  for (len=8; len>=3; len--) {
+    group = results.filter(function(r){ return r.word.length === len; });
     if (!group.length) continue;
-
-    const section = document.createElement("section");
+    section = document.createElement("section");
     section.className = "result-group";
-    const h = document.createElement("h3");
-    h.textContent = `${len}-LETTER WORDS (${group.length})`;
+    h = document.createElement("h3");
+    h.textContent = len + "-LETTER WORDS (" + group.length + ")";
     section.appendChild(h);
-
-    const list = document.createElement("div");
+    list = document.createElement("div");
     list.className = "word-list";
 
-    for (const item of group) {
-      const btn = document.createElement("button");
+    for (i=0; i<group.length; i++) {
+      item = group[i];
+      btn = document.createElement("button");
       btn.type = "button";
       btn.className = "word-btn";
-      btn.innerHTML = `<strong>${item.word.toUpperCase()}</strong><small>${item.path.map(n => n.viewPos).join(" → ")}</small>`;
-      btn.addEventListener("click", () => {
-        highlightedPathKeys = item.path.map(n => n.key);
-        renderAll(false);
-      });
+      btn.innerHTML = "<strong>" + item.word.toUpperCase() + "</strong><small>" +
+        item.path.map(function(n){return n.viewPos;}).join(" → ") + "</small>";
+      (function(path){
+        btn.addEventListener("click", function(){
+          highlightedPathKeys = path.map(function(n){return n.key;});
+          renderCubeSvg();
+          window.scrollTo({top:document.getElementById("cubeSection").offsetTop - 8, behavior:"smooth"});
+        });
+      })(item.path);
       list.appendChild(btn);
     }
-
     section.appendChild(list);
     out.appendChild(section);
   }
 }
 
-function renderStats() {
-  document.getElementById("dictionaryCount").textContent =
-    `${(window.BOGGLE_WORDS || []).length.toLocaleString()} dictionary words`;
-  document.getElementById("cubeCount").textContent =
-    `${Object.keys(state.occupancy).length} / 27 cubelets`;
-  const visible = currentVisibleFaces();
-  document.getElementById("visibleCount").textContent = `${visible.length} visible faces`;
-  const blanks = visible.filter(n => !(state.cubes[n.cubeId].faces[n.dir] || "")).length;
-  document.getElementById("blankCount").textContent =
-    blanks ? `${blanks} blank face${blanks===1 ? "" : "s"}` : "All visible faces lettered";
-  updateUndoState();
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
-  }[c]));
-}
-
-function renderInspector() {
-  const holder = document.getElementById("selectionPanel");
-  const removeBtn = document.getElementById("removeBtn");
-  const node = selectedNode();
-
-  if (!selectedCubeId || !findCubePosition(selectedCubeId)) {
-    holder.innerHTML = '<div class="muted">Click a visible face on the cube or a cubelet in the layer view to select it.</div>';
-    removeBtn.disabled = true;
-    removeBtn.textContent = "Remove selected cubelet";
-    return;
+function projectFactory() {
+  var ORIGIN_X=355, ORIGIN_Y=184;
+  var VX={x:60,y:30}, VY={x:-60,y:30}, VZ={x:0,y:-60};
+  function project(x,y,z){
+    return {
+      x:ORIGIN_X + VX.x*x + VY.x*y + VZ.x*z,
+      y:ORIGIN_Y + VX.y*x + VY.y*y + VZ.y*z
+    };
   }
-
-  const cube = state.cubes[selectedCubeId];
-  const pos = findCubePosition(selectedCubeId);
-  const visibleDirs = currentVisibleFaces().filter(n => n.cubeId === selectedCubeId).map(n => n.dir);
-
-  let html = `
-    <div class="sel-head">
-      <strong>${selectedCubeId}</strong>
-      <span>x=${pos.x+1}, y=${pos.y+1}, z=${pos.z+1}</span>
-    </div>
-    <div class="face-mini-grid">
-      ${FACE_DIRS.map(dir => `
-        <div class="mini ${visibleDirs.includes(dir) ? "visible" : ""} ${node && node.dir===dir ? "active" : ""}" data-mini-dir="${dir}">
-          <span>${DIR[dir].label}</span>
-          <b>${cube.faces[dir] || "—"}</b>
-          <small>${visibleDirs.includes(dir) ? "visible" : "hidden"}</small>
-        </div>
-      `).join("")}
-    </div>
-  `;
-
-  if (node) {
-    html += `
-      <div class="selected-face-editor">
-        <label>Selected face: <strong>position ${node.viewPos}</strong> · ${DIR[node.dir].label}</label>
-        <div class="edit-row">
-          <input id="faceLetterInput" type="text" maxlength="1" value="${escapeHtml(cube.faces[node.dir] || "")}" placeholder="A">
-          <button id="clearFaceBtn" type="button">Clear face</button>
-        </div>
-        <p class="hint">Tip: click a visible face and type a letter. The letter stays with that physical cubelet face if it later falls.</p>
-      </div>
-    `;
-  } else {
-    html += '<p class="hint">Select one of this cubelet’s visible faces on the cube to edit that face letter.</p>';
-  }
-
-  holder.innerHTML = html;
-
-  removeBtn.disabled = false;
-  removeBtn.textContent = `Remove ${selectedCubeId}`;
-
-  holder.querySelectorAll("[data-mini-dir]").forEach(el => {
-    el.addEventListener("click", () => {
-      const dir = el.dataset.miniDir;
-      const n = currentVisibleFaces().find(n => n.cubeId === selectedCubeId && n.dir === dir);
-      if (n) setSelectedNode(n);
-    });
-  });
-
-  const input = document.getElementById("faceLetterInput");
-  if (input) {
-    input.addEventListener("input", () => updateSelectedLetter(input.value));
-    input.addEventListener("focus", () => input.select());
-  }
-  const clearBtn = document.getElementById("clearFaceBtn");
-  if (clearBtn) clearBtn.addEventListener("click", () => updateSelectedLetter(""));
+  return project;
 }
+var project = projectFactory();
 
-function renderLayers() {
-  const holder = document.getElementById("layers");
-  holder.innerHTML = "";
-
-  for (const z of [2,1,0]) {
-    const layer = document.createElement("div");
-    layer.className = "layer";
-    layer.innerHTML = `<h4>${z===2 ? "Top" : z===1 ? "Middle" : "Bottom"} layer <span>z=${z+1}</span></h4>`;
-    const grid = document.createElement("div");
-    grid.className = "layer-grid";
-
-    for (let y=0; y<SIZE; y++) {
-      for (let x=0; x<SIZE; x++) {
-        const id = getCubeAt(x,y,z);
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "layer-cell";
-        if (!id) {
-          btn.classList.add("empty");
-          btn.innerHTML = "<strong>—</strong><small>empty</small>";
-          btn.disabled = true;
-        } else {
-          if (id === selectedCubeId) btn.classList.add("selected");
-          btn.innerHTML = `<strong>${id}</strong><small>x${x+1} y${y+1}</small>`;
-          btn.addEventListener("click", () => {
-            selectedCubeId = id;
-            const firstVisible = currentVisibleFaces().find(n => n.cubeId === id) || null;
-            selectedFaceKey = firstVisible ? firstVisible.key : null;
-            renderAll(false);
-          });
-        }
-        grid.appendChild(btn);
-      }
-    }
-    layer.appendChild(grid);
-    holder.appendChild(layer);
-  }
-}
-
-// ---------- SVG cube rendering ----------
-const ORIGIN_X = 355;
-const ORIGIN_Y = 180;
-const VX = {x:58, y:29};
-const VY = {x:-58, y:29};
-const VZ = {x:0, y:-58};
-
-function add(a,b){ return {x:a.x+b.x, y:a.y+b.y}; }
-function mul(v,t){ return {x:v.x*t, y:v.y*t}; }
-function project(x,y,z){
-  return add(add(add({x:ORIGIN_X, y:ORIGIN_Y}, mul(VX,x)), mul(VY,y)), mul(VZ,z));
-}
-function pointStr(p){ return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; }
-function centroid(points){
-  return points.reduce((acc,p) => ({x:acc.x + p.x/points.length, y:acc.y + p.y/points.length}), {x:0,y:0});
-}
-
-function facePolygon(node) {
-  const {x,y,z,dir} = node;
-  if (dir === "top") {
-    return [
-      project(x,   y,   z+1),
-      project(x+1, y,   z+1),
-      project(x+1, y+1, z+1),
-      project(x,   y+1, z+1)
-    ];
-  }
-  if (dir === "left") {
-    return [
-      project(x,   y+1, z+1),
-      project(x+1, y+1, z+1),
-      project(x+1, y+1, z),
-      project(x,   y+1, z)
-    ];
-  }
+function facePolygon(n) {
+  if (n.dir === "top") return [
+    project(n.x,n.y,n.z+1), project(n.x+1,n.y,n.z+1),
+    project(n.x+1,n.y+1,n.z+1), project(n.x,n.y+1,n.z+1)
+  ];
+  if (n.dir === "left") return [
+    project(n.x,n.y+1,n.z+1), project(n.x+1,n.y+1,n.z+1),
+    project(n.x+1,n.y+1,n.z), project(n.x,n.y+1,n.z)
+  ];
   return [
-    project(x+1, y,   z+1),
-    project(x+1, y+1, z+1),
-    project(x+1, y+1, z),
-    project(x+1, y,   z)
+    project(n.x+1,n.y,n.z+1), project(n.x+1,n.y+1,n.z+1),
+    project(n.x+1,n.y+1,n.z), project(n.x+1,n.y,n.z)
   ];
 }
-
-function sortForDraw(nodes) {
-  const sides = nodes.filter(n => n.dir !== "top")
-    .sort((a,b) => (a.z + a.x + a.y) - (b.z + b.x + b.y) || a.viewPos - b.viewPos);
-  const tops = nodes.filter(n => n.dir === "top")
-    .sort((a,b) => (a.z + a.x + a.y) - (b.z + b.x + b.y) || a.viewPos - b.viewPos);
-  return sides.concat(tops);
+function centroid(pts) {
+  var x=0,y=0,i;
+  for(i=0;i<pts.length;i++){x+=pts[i].x;y+=pts[i].y;}
+  return {x:x/pts.length,y:y/pts.length};
 }
-
-function pathStepForNode(nodeKey) {
-  const idx = highlightedPathKeys.indexOf(nodeKey);
-  return idx >= 0 ? idx + 1 : null;
+function ptsAttr(pts){
+  return pts.map(function(p){return p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");
 }
 
 function renderCubeSvg() {
-  const svg = document.getElementById("cubeSvg");
-  svg.innerHTML = "";
-  const ns = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("cubeSvg");
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  var ns="http://www.w3.org/2000/svg";
 
-  const shadow = document.createElementNS(ns, "ellipse");
-  shadow.setAttribute("cx", "355");
-  shadow.setAttribute("cy", "365");
-  shadow.setAttribute("rx", "180");
-  shadow.setAttribute("ry", "52");
-  shadow.setAttribute("fill", "rgba(15,23,42,0.10)");
+  var shadow=document.createElementNS(ns,"ellipse");
+  shadow.setAttribute("cx","355"); shadow.setAttribute("cy","370");
+  shadow.setAttribute("rx","185"); shadow.setAttribute("ry","50");
+  shadow.setAttribute("fill","rgba(15,23,42,.10)");
   svg.appendChild(shadow);
 
-  const outlineTop = [project(0,0,3), project(3,0,3), project(3,3,3), project(0,3,3)];
-  const outlineLeft = [project(0,3,3), project(3,3,3), project(3,3,0), project(0,3,0)];
-  const outlineRight = [project(3,0,3), project(3,3,3), project(3,3,0), project(3,0,0)];
+  var nodes=currentVisibleFaces();
+  nodes.sort(function(a,b){
+    if (a.dir==="top" && b.dir!=="top") return 1;
+    if (a.dir!=="top" && b.dir==="top") return -1;
+    return (a.z+a.x+a.y)-(b.z+b.x+b.y);
+  });
 
-  for (const pts of [outlineLeft, outlineRight, outlineTop]) {
-    const poly = document.createElementNS(ns, "polygon");
-    poly.setAttribute("points", pts.map(pointStr).join(" "));
-    poly.setAttribute("class", "cube-outline");
-    svg.appendChild(poly);
-  }
+  nodes.forEach(function(n){
+    var g=document.createElementNS(ns,"g");
+    var cls="svg-face svg-"+n.dir;
+    if (!state.cubes[n.cubeId].faces[n.dir]) cls += " blank";
+    if (n.key===selectedFaceKey) cls += " selected";
+    if (highlightedPathKeys.indexOf(n.key)>=0) cls += " in-path";
+    g.setAttribute("class",cls);
 
-  const visible = sortForDraw(currentVisibleFaces());
-  for (const node of visible) {
-    const polyPts = facePolygon(node);
-    const center = centroid(polyPts);
-    const blank = !(state.cubes[node.cubeId].faces[node.dir] || "");
-    const isSelCube = selectedCubeId === node.cubeId;
-    const isSelFace = selectedFaceKey === node.key;
-    const pathStep = pathStepForNode(node.key);
-
-    const g = document.createElementNS(ns, "g");
-    g.setAttribute("class", `svg-face svg-${node.dir}${blank ? " blank" : ""}${isSelCube ? " selected-cube" : ""}${isSelFace ? " selected-face" : ""}${pathStep ? " in-path" : ""}`);
-
-    const poly = document.createElementNS(ns, "polygon");
-    poly.setAttribute("points", polyPts.map(pointStr).join(" "));
+    var poly=document.createElementNS(ns,"polygon");
+    var pts=facePolygon(n), c=centroid(pts);
+    poly.setAttribute("points",ptsAttr(pts));
     g.appendChild(poly);
 
-    const num = document.createElementNS(ns, "text");
-    num.setAttribute("class", "pos-label");
-    num.setAttribute("x", polyPts[0].x + 15);
-    num.setAttribute("y", polyPts[0].y + 16);
-    num.textContent = String(node.viewPos);
+    var num=document.createElementNS(ns,"text");
+    num.setAttribute("class","pos-label");
+    num.setAttribute("x",pts[0].x+15); num.setAttribute("y",pts[0].y+16);
+    num.textContent=String(n.viewPos);
     g.appendChild(num);
 
-    const letter = document.createElementNS(ns, "text");
-    letter.setAttribute("class", "letter-label");
-    letter.setAttribute("x", center.x);
-    letter.setAttribute("y", center.y + 10);
-    letter.setAttribute("text-anchor", "middle");
-    letter.textContent = state.cubes[node.cubeId].faces[node.dir] || "";
+    var letter=document.createElementNS(ns,"text");
+    letter.setAttribute("class","letter-label");
+    letter.setAttribute("x",c.x); letter.setAttribute("y",c.y+11);
+    letter.setAttribute("text-anchor","middle");
+    letter.textContent=state.cubes[n.cubeId].faces[n.dir] || "";
     g.appendChild(letter);
 
-    const cubeText = document.createElementNS(ns, "text");
-    cubeText.setAttribute("class", "cube-label");
-    cubeText.setAttribute("x", center.x);
-    cubeText.setAttribute("y", center.y + 30);
-    cubeText.setAttribute("text-anchor", "middle");
-    cubeText.textContent = `${node.cubeId} · ${DIR[node.dir].label}`;
-    g.appendChild(cubeText);
-
-    if (pathStep) {
-      const bp = polyPts[1];
-      const circle = document.createElementNS(ns, "circle");
-      circle.setAttribute("cx", bp.x - 10);
-      circle.setAttribute("cy", bp.y + 9);
-      circle.setAttribute("r", "12");
-      circle.setAttribute("class", "step-circle");
-      g.appendChild(circle);
-
-      const step = document.createElementNS(ns, "text");
-      step.setAttribute("x", bp.x - 10);
-      step.setAttribute("y", bp.y + 13);
-      step.setAttribute("text-anchor", "middle");
-      step.setAttribute("class", "step-number");
-      step.textContent = String(pathStep);
-      g.appendChild(step);
+    var stepIndex=highlightedPathKeys.indexOf(n.key);
+    if (stepIndex>=0) {
+      var circ=document.createElementNS(ns,"circle");
+      circ.setAttribute("cx",pts[1].x-10); circ.setAttribute("cy",pts[1].y+9);
+      circ.setAttribute("r","12"); circ.setAttribute("class","step-circle");
+      g.appendChild(circ);
+      var st=document.createElementNS(ns,"text");
+      st.setAttribute("x",pts[1].x-10); st.setAttribute("y",pts[1].y+13);
+      st.setAttribute("text-anchor","middle"); st.setAttribute("class","step-number");
+      st.textContent=String(stepIndex+1);
+      g.appendChild(st);
     }
 
-    g.addEventListener("click", () => {
-      selectedFaceKey = node.key;
-      selectedCubeId = node.cubeId;
-      renderAll(false);
-    });
-
+    g.addEventListener("click",function(){ quickInputForNode(n); });
     svg.appendChild(g);
-  }
+  });
 }
 
-function handleGlobalTyping(e) {
-  const activeTag = document.activeElement?.tagName?.toLowerCase();
-  const typingInInput = activeTag === "input" || activeTag === "textarea";
-  const node = selectedNode();
-  if (!node) return;
-
-  if (!typingInInput && /^[a-z]$/i.test(e.key)) {
-    e.preventDefault();
-    updateSelectedLetter(e.key);
-    return;
+function renderAdvanced() {
+  var box=document.getElementById("advancedInfo");
+  var html="";
+  if (selectedCubeId) {
+    var p=findCubePosition(selectedCubeId);
+    if (p) html += "<p><strong>"+selectedCubeId+"</strong> at x="+(p.x+1)+", y="+(p.y+1)+", z="+(p.z+1)+"</p>";
   }
-  if (!typingInInput && (e.key === "Backspace" || e.key === "Delete")) {
-    e.preventDefault();
-    updateSelectedLetter("");
-  }
+  html += '<div class="layers">';
+  [2,1,0].forEach(function(z){
+    html += '<div class="layer"><h4>'+(z===2?"Top":z===1?"Middle":"Bottom")+' layer</h4><div class="layer-grid">';
+    var y,x,id;
+    for(y=0;y<3;y++) for(x=0;x<3;x++){
+      id=getCubeAt(x,y,z);
+      html += '<div class="layer-cell'+(id===selectedCubeId?" selected":"")+'">'+(id||"—")+'</div>';
+    }
+    html += '</div></div>';
+  });
+  html += "</div>";
+  box.innerHTML=html;
 }
 
+function renderMode() {
+  document.getElementById("initialSection").style.display = started ? "none" : "block";
+  document.getElementById("cubeSection").style.display = started ? "block" : "none";
+}
 
-function renderAll(preserveStatus=true) {
+function renderStats() {
+  document.getElementById("cubeCount").textContent = Object.keys(state.occupancy).length + " / 27 cubelets";
+  var v=currentVisibleFaces();
+  document.getElementById("visibleCount").textContent=v.length+" visible faces";
+  var blanks=v.filter(function(n){return !state.cubes[n.cubeId].faces[n.dir];}).length;
+  document.getElementById("blankCount").textContent=blanks+" blank";
+  document.getElementById("dictionaryCount").textContent=(window.BOGGLE_WORDS||[]).length.toLocaleString()+" dictionary words";
+  document.getElementById("removeBtn").disabled=!selectedCubeId;
+  document.getElementById("removeBtn").textContent=selectedCubeId ? "Remove "+selectedCubeId : "Remove cubelet";
+  updateUndo();
+}
+
+function renderAll() {
+  renderMode();
   renderStats();
-  renderCubeSvg();
-  renderInspector();
-  renderLayers();
-  if (!preserveStatus) setStatus("");
+  if (!started) populateInitialInputsFromState();
+  if (started) {
+    renderCubeSvg();
+    renderQuickBar();
+    renderAdvanced();
+  }
+}
+
+function exportState() {
+  var blob=new Blob([JSON.stringify({state:state,started:started},null,2)],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="3d-boggle-v4-state.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+}
+
+function importState(file) {
+  var reader=new FileReader();
+  reader.onload=function(){
+    try{
+      var parsed=JSON.parse(reader.result);
+      if (parsed.state && parsed.state.cubes) {
+        pushHistory();
+        state=parsed.state; started=!!parsed.started;
+      } else if (parsed.cubes) {
+        pushHistory();
+        state=parsed; started=true;
+      } else throw new Error("Invalid state");
+      selectedFaceKey=null; selectedCubeId=null; highlightedPathKeys=[];
+      saveLocal(); renderAll(); clearResults(); setStatus("State imported.","ok");
+    }catch(e){setStatus("Could not import state.","warn");}
+  };
+  reader.readAsText(file);
 }
 
 function init() {
-  if (!loadLocal()) state = newState();
+  if (!loadLocal()) state=newState();
 
-  document.getElementById("findBtn").addEventListener("click", runSolver);
-  document.getElementById("removeBtn").addEventListener("click", () => {
-    if (selectedCubeId) removeCube(selectedCubeId);
-  });
-  document.getElementById("undoBtn").addEventListener("click", undo);
-  document.getElementById("resetBtn").addEventListener("click", resetEverything);
-  document.getElementById("exampleBtn").addEventListener("click", loadExampleLetters);
-  document.getElementById("exportBtn").addEventListener("click", exportState);
-  document.getElementById("importFile").addEventListener("change", e => {
-    const file = e.target.files?.[0];
-    if (file) importState(file);
-    e.target.value = "";
-  });
-  document.addEventListener("keydown", handleGlobalTyping);
+  wireInitialInputs();
 
-  renderAll(false);
+  document.getElementById("startCubeBtn").addEventListener("click",initialInputsToCube);
+  document.getElementById("findBtn").addEventListener("click",runSolver);
+  document.getElementById("removeBtn").addEventListener("click",removeSelectedCube);
+  document.getElementById("undoBtn").addEventListener("click",undo);
+  document.getElementById("resetBtn").addEventListener("click",resetAll);
+  document.getElementById("exportBtn").addEventListener("click",exportState);
+  document.getElementById("importFile").addEventListener("change",function(e){
+    if(e.target.files && e.target.files[0]) importState(e.target.files[0]);
+    e.target.value="";
+  });
+
+  var q=document.getElementById("quickLetterInput");
+  q.addEventListener("input",function(){
+    q.value=q.value.replace(/[^A-Za-z]/g,"").slice(-1).toUpperCase();
+    if(q.value) {
+      saveQuickLetter();
+      setTimeout(function(){ q.blur(); },50);
+    }
+  });
+  q.addEventListener("keydown",function(e){
+    if(e.key==="Backspace" || e.key==="Delete") {
+      q.value="";
+      saveQuickLetter();
+    }
+  });
+
+  renderAll();
   clearResults();
-  setStatus("Ready. Click a visible face on the cube and type a letter.", "ok");
+  setStatus(started ? "Tap a face to enter or change its letter." : "Enter the 27 starting letters, just like v1.","ok");
 }
-document.addEventListener("DOMContentLoaded", init);
+
+document.addEventListener("DOMContentLoaded",init);
