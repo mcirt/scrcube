@@ -2,184 +2,222 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Custom 3D Boggle Solver</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Custom 3D Boggle Solver v2</title>
 <style>
-  :root {
-    --bg:#f4f6f8; --card:#ffffff; --ink:#17202a; --muted:#64748b;
-    --accent:#d97706; --accent2:#f59e0b; --line:#d9dee7; --path:#fde68a;
-  }
-  * { box-sizing:border-box; }
-  body {
-    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    background:var(--bg); color:var(--ink);
-  }
-  header {
-    padding:22px 18px 10px; text-align:center;
-  }
-  header h1 { margin:0 0 6px; font-size:clamp(24px,4vw,38px); }
-  header p { margin:0; color:var(--muted); }
-  .app {
-    width:min(1180px, calc(100% - 24px)); margin:14px auto 40px;
-    display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,.85fr); gap:18px;
-  }
-  .card {
-    background:var(--card); border:1px solid var(--line); border-radius:18px;
-    box-shadow:0 8px 26px rgba(15,23,42,.07); padding:18px;
-  }
-  .board-title {
-    display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;
-  }
-  .board-title h2, .results-head h2 { margin:0; font-size:20px; }
-  .pill {
-    border:1px solid var(--line); background:#fff7ed; padding:6px 10px;
-    border-radius:999px; font-size:12px; color:#9a3412; white-space:nowrap;
-  }
-  .faces {
-    display:grid; grid-template-columns:1fr 1fr; gap:16px;
-  }
-  .face {
-    border:1px solid var(--line); border-radius:14px; padding:14px; background:#fbfcfe;
-  }
-  .face.top { grid-column:1 / -1; }
-  .face h3 {
-    margin:0 0 12px; font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
-  }
-  .diamond {
-    width:min(390px,100%); margin:0 auto; display:flex; flex-direction:column; gap:6px; align-items:center;
-  }
-  .diamond-row { display:flex; gap:8px; justify-content:center; }
-  .diamond-row.two { gap:82px; }
-  .diamond-row.three { gap:42px; }
-  .grid-face {
-    display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
-  }
-  .tile {
-    width:64px; height:64px; border:2px solid #aeb7c4; border-radius:12px; background:white;
-    position:relative; display:flex; align-items:center; justify-content:center; transition:.15s;
-  }
-  .grid-face .tile { width:100%; }
-  .tile > span {
-    position:absolute; top:4px; left:7px; font-size:10px; font-weight:700; color:#94a3b8;
-  }
-  .tile input {
-    width:100%; height:100%; border:0; outline:0; background:transparent;
-    text-align:center; font-weight:800; font-size:27px; text-transform:uppercase; color:var(--ink);
-  }
-  .tile:focus-within { border-color:var(--accent2); box-shadow:0 0 0 3px rgba(245,158,11,.16); }
-  .tile.path {
-    background:var(--path); border-color:var(--accent); box-shadow:0 0 0 3px rgba(217,119,6,.14);
-  }
-  .tile.path::after {
-    content:attr(data-step); position:absolute; right:-7px; top:-8px; min-width:22px; height:22px;
-    padding:0 5px; border-radius:999px; display:grid; place-items:center;
-    background:#111827; color:white; font-size:11px; font-weight:800;
-  }
-  .controls {
-    display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;
-  }
-  button {
-    font:inherit;
-  }
-  .btn {
-    border:1px solid var(--line); border-radius:11px; padding:11px 16px; font-weight:700; cursor:pointer; background:white;
-  }
-  .btn.primary { background:var(--accent); color:white; border-color:var(--accent); }
-  .btn:hover { filter:brightness(.98); }
-  #status { margin-top:12px; min-height:22px; color:var(--muted); font-size:14px; }
-  .rules {
-    margin-top:14px; border-top:1px solid var(--line); padding-top:12px; color:var(--muted); font-size:13px; line-height:1.5;
-  }
-  .results-head {
-    display:flex; justify-content:space-between; align-items:end; gap:10px; padding-bottom:12px; border-bottom:1px solid var(--line);
-  }
-  #wordCount { color:var(--muted); font-size:13px; }
-  #results { max-height:75vh; overflow:auto; padding-right:4px; }
-  .result-group h3 {
-    margin:18px 0 8px; font-size:14px; color:#92400e; text-transform:uppercase; letter-spacing:.04em;
-  }
-  .word-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
-  .word {
-    border:1px solid var(--line); background:white; border-radius:10px; padding:9px 10px; cursor:pointer;
-    text-align:left; display:flex; flex-direction:column; gap:2px;
-  }
-  .word:hover { border-color:var(--accent2); background:#fffaf0; }
-  .word span { font-weight:800; letter-spacing:.03em; }
-  .word small { color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .empty { color:var(--muted); padding:22px 4px; }
-  footer {
-    width:min(1180px,calc(100% - 24px)); margin:0 auto 28px; color:var(--muted); font-size:12px; text-align:center;
-  }
-  @media (max-width:850px) {
-    .app { grid-template-columns:1fr; }
-    #results { max-height:none; }
-  }
-  @media (max-width:560px) {
-    .faces { grid-template-columns:1fr; }
-    .face.top { grid-column:auto; }
-    .tile { width:54px; height:54px; }
-    .diamond-row.two { gap:60px; }
-    .diamond-row.three { gap:26px; }
-    .word-list { grid-template-columns:1fr; }
-  }
+:root{
+  --bg:#f4f6f8; --card:#fff; --ink:#17202a; --muted:#667085;
+  --line:#d9dee7; --orange:#d97706; --orange2:#f59e0b;
+  --blue:#2563eb; --danger:#c2410c; --green:#15803d;
+  --new:#fff7d6; --path:#fde68a; --sel:#dbeafe;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+}
+header{
+  background:linear-gradient(135deg,#f59e0b,#ea580c);
+  color:white;padding:20px 16px 18px;
+}
+.header-inner{width:min(1250px,100%);margin:auto}
+h1{margin:0;font-size:clamp(26px,4vw,40px)}
+header p{margin:5px 0 0;opacity:.94}
+main{
+  width:min(1250px,calc(100% - 20px));margin:16px auto 35px;
+  display:grid;grid-template-columns:minmax(0,1.25fr) minmax(330px,.75fr);gap:16px;
+}
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 8px 24px rgba(15,23,42,.06);padding:16px;
+}
+.topbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.topbar h2{margin:0;font-size:20px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{
+  padding:5px 9px;border-radius:999px;border:1px solid #fed7aa;
+  background:#fff7ed;color:#9a3412;font-size:12px;font-weight:700;
+}
+.faces{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.face-panel{
+  border:1px solid var(--line);border-radius:14px;background:#fbfcfe;padding:12px;
+}
+.face-panel.top{grid-column:1/-1}
+.face-panel h3{margin:0 0 9px;color:var(--muted);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
+#topFace{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:280px;justify-content:center}
+.diamond-row{display:flex;justify-content:center;gap:8px}
+.diamond-row.row-2{gap:78px}
+.diamond-row.row-3{gap:38px}
+#leftFace,#rightFace{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.face-tile{
+  height:68px;min-width:58px;position:relative;border:2px solid #aeb7c4;
+  border-radius:11px;background:white;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;cursor:pointer;transition:.12s;
+}
+.face-tile:hover{border-color:var(--orange2)}
+.face-tile.selected{box-shadow:0 0 0 3px rgba(37,99,235,.20);border-color:var(--blue)}
+.face-tile.needs-letter{background:var(--new);border-color:#f59e0b}
+.face-tile.path{background:var(--path);border-color:var(--orange)}
+.face-tile .pos-num{position:absolute;top:3px;left:6px;font-size:10px;font-weight:800;color:#94a3b8}
+.face-tile input{
+  width:100%;height:42px;border:0;outline:0;background:transparent;text-align:center;
+  font-size:27px;font-weight:850;text-transform:uppercase;color:#111827;
+}
+.face-tile small{font-size:9px;color:var(--muted);line-height:1}
+.empty-face{color:#a8b0bc;background:#f2f4f7;border-style:dashed;cursor:default}
+.empty-face .hole{font-size:24px}
+.step-badge{
+  position:absolute;right:-7px;top:-8px;min-width:22px;height:22px;padding:0 5px;
+  display:grid;place-items:center;border-radius:999px;background:#111827;color:#fff;font-size:11px;z-index:3
+}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button,.file-label{
+  font:inherit;border:1px solid var(--line);background:white;border-radius:10px;padding:9px 12px;
+  cursor:pointer;font-weight:750;color:var(--ink)
+}
+button:hover,.file-label:hover{filter:brightness(.98)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:var(--orange);border-color:var(--orange);color:white}
+.danger{background:#fff7ed;border-color:#fdba74;color:#9a3412}
+.file-label input{display:none}
+#status{min-height:22px;margin-top:10px;color:var(--muted);font-size:13px}
+#status.ok{color:var(--green)}
+#status.warn{color:#b45309;font-weight:650}
+.subcard{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
+.subcard h3{margin:0 0 9px;font-size:15px}
+.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.layer{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fbfcfe}
+.layer h4{font-size:12px;margin:0 0 6px;display:flex;justify-content:space-between;color:#475467}
+.layer h4 span{font-weight:500;color:#98a2b3}
+.layer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.cube-cell{padding:7px 3px;border-radius:7px;min-height:47px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cube-cell strong{font-size:12px}
+.cube-cell small{font-size:8px;color:#98a2b3;font-weight:500}
+.cube-cell.selected{background:var(--sel);border-color:var(--blue)}
+.hole-cell{background:#f2f4f7;border-style:dashed}
+.cube-info-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cube-info-head strong{font-size:20px}
+.cube-info-head span{font-size:11px;color:var(--muted)}
+.mini-faces{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px}
+.mini-faces>div{border:1px solid var(--line);border-radius:9px;padding:7px;text-align:center;background:#f8fafc}
+.mini-faces>div.is-visible{background:#fff7ed;border-color:#fdba74}
+.mini-faces span,.mini-faces small{display:block;color:var(--muted);font-size:10px}
+.mini-faces b{display:block;font-size:20px;margin:2px}
+.hint,.muted{font-size:12px;color:var(--muted)}
+.results-head{display:flex;justify-content:space-between;gap:8px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:10px}
+.results-head h2{margin:0;font-size:20px}
+#wordCount{font-size:12px;color:var(--muted)}
+#results{max-height:74vh;overflow:auto;padding-right:3px}
+.empty-results{padding:18px 2px;color:var(--muted);font-size:13px}
+.result-group h3{font-size:13px;color:#9a3412;margin:17px 0 7px}
+.word-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.word-btn{text-align:left;padding:8px 9px;display:flex;flex-direction:column;gap:1px}
+.word-btn strong{font-size:14px;letter-spacing:.03em}
+.word-btn small{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend{
+  margin-top:12px;padding:10px 12px;border-radius:10px;background:#f8fafc;color:#667085;
+  font-size:12px;line-height:1.45
+}
+footer{width:min(1250px,calc(100% - 20px));margin:0 auto 25px;text-align:center;color:#98a2b3;font-size:11px}
+@media(max-width:900px){
+  main{grid-template-columns:1fr}
+  #results{max-height:none}
+}
+@media(max-width:620px){
+  .faces{grid-template-columns:1fr}
+  .face-panel.top{grid-column:auto}
+  .layers{grid-template-columns:1fr}
+  .layer-grid{grid-template-columns:repeat(9,1fr)}
+  .cube-cell{min-height:42px;padding:5px 1px}
+  .cube-cell small{display:none}
+  .word-list{grid-template-columns:1fr}
+  .diamond-row.row-2{gap:55px}
+  .diamond-row.row-3{gap:23px}
+  .face-tile{height:62px;min-width:52px}
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Custom 3D Boggle Solver</h1>
-  <p>Enter all 27 letters. Finds valid words from 8 letters down to 3.</p>
+  <div class="header-inner">
+    <h1>Custom 3D Boggle Solver v2</h1>
+    <p>27 physical cubelets · persistent face letters · manual removal · gravity · 3–8 letter word finder</p>
+  </div>
 </header>
 
-<main class="app">
+<main>
   <section class="card">
-    <div class="board-title">
-      <h2>Board</h2>
-      <div class="pill" id="dictionaryCount">Loading dictionary…</div>
+    <div class="topbar">
+      <h2>Current exposed faces</h2>
+      <div class="chips">
+        <span class="chip" id="cubeCount">27 / 27 cubelets</span>
+        <span class="chip" id="visibleCount">27 visible faces</span>
+        <span class="chip" id="blankCount">27 need letters</span>
+        <span class="chip" id="dictionaryCount"></span>
+      </div>
     </div>
 
     <div class="faces">
-      <div class="face top">
-        <h3>Top face — your numbering</h3>
-        <div class="diamond">
-          <div class="diamond-row one"><label class="tile" data-tile="3"><span>3</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 3"></label></div><div class="diamond-row two"><label class="tile" data-tile="2"><span>2</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 2"></label><label class="tile" data-tile="6"><span>6</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 6"></label></div><div class="diamond-row three"><label class="tile" data-tile="1"><span>1</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 1"></label><label class="tile" data-tile="5"><span>5</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 5"></label><label class="tile" data-tile="9"><span>9</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 9"></label></div><div class="diamond-row two"><label class="tile" data-tile="4"><span>4</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 4"></label><label class="tile" data-tile="8"><span>8</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 8"></label></div><div class="diamond-row one"><label class="tile" data-tile="7"><span>7</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 7"></label></div>
-        </div>
+      <div class="face-panel top">
+        <h3>Top face — your 1–9 numbering</h3>
+        <div id="topFace"></div>
       </div>
-
-      <div class="face">
-        <h3>Left face — 10 to 18</h3>
-        <div class="grid-face"><label class="tile" data-tile="10"><span>10</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 10"></label><label class="tile" data-tile="11"><span>11</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 11"></label><label class="tile" data-tile="12"><span>12</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 12"></label><label class="tile" data-tile="13"><span>13</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 13"></label><label class="tile" data-tile="14"><span>14</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 14"></label><label class="tile" data-tile="15"><span>15</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 15"></label><label class="tile" data-tile="16"><span>16</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 16"></label><label class="tile" data-tile="17"><span>17</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 17"></label><label class="tile" data-tile="18"><span>18</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 18"></label></div>
+      <div class="face-panel">
+        <h3>Left face — positions 10–18</h3>
+        <div id="leftFace"></div>
       </div>
-
-      <div class="face">
-        <h3>Right face — 19 to 27</h3>
-        <div class="grid-face"><label class="tile" data-tile="19"><span>19</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 19"></label><label class="tile" data-tile="20"><span>20</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 20"></label><label class="tile" data-tile="21"><span>21</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 21"></label><label class="tile" data-tile="22"><span>22</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 22"></label><label class="tile" data-tile="23"><span>23</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 23"></label><label class="tile" data-tile="24"><span>24</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 24"></label><label class="tile" data-tile="25"><span>25</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 25"></label><label class="tile" data-tile="26"><span>26</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 26"></label><label class="tile" data-tile="27"><span>27</span><input maxlength="1" inputmode="text" autocomplete="off" aria-label="Tile 27"></label></div>
+      <div class="face-panel">
+        <h3>Right face — positions 19–27</h3>
+        <div id="rightFace"></div>
       </div>
     </div>
 
     <div class="controls">
-      <button class="btn primary" id="solveBtn" type="button">Solve</button>
-      <button class="btn" id="clearBtn" type="button">Clear</button>
-      <button class="btn" id="exampleBtn" type="button">Load Example</button>
+      <button id="findBtn" class="primary" type="button">Find Words</button>
+      <button id="removeBtn" class="danger" type="button" disabled>Remove selected cubelet</button>
+      <button id="undoBtn" type="button" disabled>Undo</button>
+      <button id="exampleBtn" type="button">Load Example</button>
     </div>
     <div id="status"></div>
 
-    <div class="rules">
-      <strong>Rules in this v1:</strong> start on any tile; move only to a tile touching the current tile by a side or corner;
-      never reuse the same tile in one word; word length is limited to 3–8 letters. Click a result to highlight its tile path.
+    <div class="subcard">
+      <h3>Physical 3×3×3 cube</h3>
+      <div class="legend">
+        Select any cubelet here or by clicking one of its visible letter faces. When you remove it,
+        every cubelet above it in that same vertical column falls down. The cubelet ID and all letters
+        already assigned to that cubelet move with it.
+      </div>
+      <div id="layers" class="layers" style="margin-top:9px"></div>
+    </div>
+
+    <div class="subcard">
+      <h3>Selected cubelet</h3>
+      <div id="cubeInfo"></div>
+      <div class="controls">
+        <button id="resetBtn" type="button">Reset whole cube</button>
+        <button id="exportBtn" type="button">Export state</button>
+        <label class="file-label">Import state<input id="importFile" type="file" accept=".json,application/json"></label>
+      </div>
     </div>
   </section>
 
-  <section class="card">
+  <aside class="card">
     <div class="results-head">
-      <h2>Words</h2>
-      <div id="wordCount"></div>
+      <h2>Word Finder</h2>
+      <span id="wordCount"></span>
     </div>
-    <div id="results"><div class="empty">Enter all 27 letters, then press Solve.</div></div>
-  </section>
+    <div id="results">
+      <div class="empty-results">Press <strong>Find Words</strong> after the visible faces have letters.</div>
+    </div>
+    <div class="legend">
+      Finds words from <strong>8 letters down to 3</strong>. A next letter must be on a currently visible
+      face tile touching the previous face tile by a side or corner. Click a result to highlight its path.
+    </div>
+  </aside>
 </main>
 
 <footer>
-  v1 • Offline browser solver • SCOWL-based dictionary. See SCOWL-Copyright.txt.
+  v2 dynamic cube build · offline HTML/JavaScript · SCOWL-based dictionary · see SCOWL-Copyright.txt
 </footer>
 
 <script src="dictionary.js"></script>
