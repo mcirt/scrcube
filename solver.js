@@ -326,37 +326,85 @@ function writeLetterToNode(node, value) {
   saveLocal();
 }
 
+function initialEntryOrder() {
+  // Follow the visual top-face entry order, then left and right.
+  // This is the same fast "type one letter -> jump to next box" behavior wanted from v1.
+  return [3,2,6,1,5,9,4,8,7,
+          10,11,12,13,14,15,16,17,18,
+          19,20,21,22,23,24,25,26,27];
+}
+
 function initialInputsToCube() {
-  var allFilled = true;
-  var pos,input,node,val;
-  for (pos=1; pos<=27; pos++) {
+  var order = initialEntryOrder();
+  var i,pos,input,val,node;
+  var missing = [];
+
+  // Normalize all 27 entries first.
+  for (i=0; i<order.length; i++) {
+    pos = order[i];
     input = document.querySelector('[data-initial-pos="'+pos+'"]');
-    val = input ? input.value.trim().toUpperCase() : "";
+    val = input ? String(input.value || "").replace(/[^A-Za-z]/g,"").slice(-1).toUpperCase() : "";
+    if (input) input.value = val;
+
     if (!/^[A-Z]$/.test(val)) {
-      allFilled = false;
+      missing.push(pos);
       if (input) input.classList.add("missing");
     } else if (input) {
       input.classList.remove("missing");
     }
   }
 
-  if (!allFilled) {
-    setStatus("Fill all 27 starting letters first.", "warn");
-    var first = document.querySelector(".initial-input.missing");
-    if (first) first.focus();
-    return;
+  if (missing.length) {
+    setInitialMessage("Missing letter" + (missing.length === 1 ? "" : "s") +
+      " at position" + (missing.length === 1 ? " " : "s ") + missing.join(", ") + ".", "warn");
+    setStatus("Fill the highlighted starting position" + (missing.length === 1 ? "" : "s") + ".", "warn");
+    input = document.querySelector('[data-initial-pos="'+missing[0]+'"]');
+    if (input) {
+      input.scrollIntoView({block:"center", behavior:"smooth"});
+      setTimeout(function(){ input.focus(); input.select(); }, 250);
+    }
+    return false;
   }
 
   pushHistory();
-  for (pos=1; pos<=27; pos++) {
+
+  // Write all 27 letters to the physical cubelet faces.
+  for (i=0; i<order.length; i++) {
+    pos = order[i];
     input = document.querySelector('[data-initial-pos="'+pos+'"]');
     node = nodeForViewPos(pos);
-    writeLetterToNode(node,input.value);
+    if (!node) {
+      setInitialMessage("Could not map starting position " + pos + ". Please reload this build.", "warn");
+      return false;
+    }
+    state.cubes[node.cubeId].faces[node.dir] = input.value.toUpperCase();
   }
+
   started = true;
+  selectedFaceKey = null;
+  selectedCubeId = null;
+  highlightedPathKeys = [];
   saveLocal();
+
+  setInitialMessage("Starting cube loaded.", "ok");
   renderAll();
-  setStatus("Starting cube loaded. Tap any visible face later to change or add a letter.", "ok");
+  clearResults();
+  setStatus("Starting cube loaded. Tap any exposed face to enter or change a letter.", "ok");
+
+  // Move user directly to the cube.
+  setTimeout(function(){
+    var cube = document.getElementById("cubeSection");
+    if (cube) cube.scrollIntoView({block:"start", behavior:"smooth"});
+  }, 60);
+
+  return true;
+}
+
+function setInitialMessage(message, cls) {
+  var el = document.getElementById("initialMessage");
+  if (!el) return;
+  el.textContent = message || "";
+  el.className = "initial-message " + (cls || "");
 }
 
 function populateInitialInputsFromState() {
@@ -370,15 +418,50 @@ function populateInitialInputsFromState() {
 }
 
 function wireInitialInputs() {
-  var inputs = Array.prototype.slice.call(document.querySelectorAll(".initial-input"));
+  var order = initialEntryOrder();
+  var inputs = [];
+
+  order.forEach(function(pos){
+    var inp = document.querySelector('[data-initial-pos="'+pos+'"]');
+    if (inp) inputs.push(inp);
+  });
+
   inputs.forEach(function(inp, idx){
     inp.addEventListener("input", function(){
-      inp.value = inp.value.replace(/[^A-Za-z]/g,"").slice(-1).toUpperCase();
+      var cleaned = String(inp.value || "").replace(/[^A-Za-z]/g,"").slice(-1).toUpperCase();
+      inp.value = cleaned;
       inp.classList.remove("missing");
-      if (inp.value && inputs[idx+1]) inputs[idx+1].focus();
+      setInitialMessage("", "");
+
+      if (cleaned && inputs[idx+1]) {
+        // tiny delay makes iOS keyboard/focus movement more reliable
+        setTimeout(function(){
+          inputs[idx+1].focus();
+          inputs[idx+1].select();
+        }, 0);
+      }
     });
-    inp.addEventListener("focus", function(){ inp.select(); });
+
+    inp.addEventListener("focus", function(){
+      try { inp.select(); } catch(e) {}
+    });
+
+    inp.addEventListener("keydown", function(e){
+      if ((e.key === "Backspace" || e.key === "Delete") && !inp.value && idx > 0) {
+        e.preventDefault();
+        inputs[idx-1].focus();
+        inputs[idx-1].select();
+      }
+    });
   });
+
+  // v1-style: keyboard starts at the first top tile automatically.
+  if (!started && inputs.length) {
+    setTimeout(function(){
+      inputs[0].focus();
+      inputs[0].select();
+    }, 250);
+  }
 }
 
 function quickInputForNode(node) {
@@ -662,7 +745,12 @@ function init() {
 
   wireInitialInputs();
 
-  document.getElementById("startCubeBtn").addEventListener("click",initialInputsToCube);
+  var startBtn = document.getElementById("startCubeBtn");
+  if (startBtn) startBtn.addEventListener("click", function(e){
+    e.preventDefault();
+    initialInputsToCube();
+  });
+  window.startCube = initialInputsToCube;
   document.getElementById("findBtn").addEventListener("click",runSolver);
   document.getElementById("removeBtn").addEventListener("click",removeSelectedCube);
   document.getElementById("undoBtn").addEventListener("click",undo);

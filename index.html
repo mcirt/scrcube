@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Custom 3D Boggle Solver v4</title>
+<title>Custom 3D Boggle Solver v4.1</title>
 <style>
 :root{
  --bg:#f4f6f8;--card:#fff;--ink:#18212b;--muted:#6b7280;--line:#d9dee7;
@@ -48,7 +48,7 @@ button.primary{background:var(--orange);color:#fff;border-color:var(--orange)} b
 .quick-bar.show{transform:translateX(-50%) translateY(0)}
 .quick-bar label{font-size:12px;flex:1}
 #quickLetterInput{width:58px;height:48px;border-radius:10px;border:0;font-size:28px;font-weight:900;text-align:center;text-transform:uppercase}
-#status{min-height:20px;margin-top:9px;font-size:13px;color:var(--muted)} #status.ok{color:var(--green)} #status.warn{color:var(--warn);font-weight:700}
+#status{min-height:20px;margin-top:9px;font-size:13px;color:var(--muted)} .initial-message{min-height:20px;margin-top:8px;font-size:13px}.initial-message.ok{color:var(--green);font-weight:700}.initial-message.warn{color:var(--warn);font-weight:700} #status.ok{color:var(--green)} #status.warn{color:var(--warn);font-weight:700}
 .results-head{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:8px}
 #wordCount{font-size:12px;color:var(--muted)} .result-group h3{margin:15px 0 6px;color:#9a3412;font-size:13px}
 .word-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px} .word-btn{text-align:left;display:flex;flex-direction:column;gap:1px;padding:8px}
@@ -61,12 +61,12 @@ details{margin-top:12px;border-top:1px solid var(--line);padding-top:10px} summa
 </style>
 </head>
 <body>
-<header><div class="header-inner"><h1>Custom 3D Boggle Solver v4</h1><p>Fast initial entry · tap-a-face letter entry · gravity · word finder</p></div></header>
+<header><div class="header-inner"><h1>Custom 3D Boggle Solver v4.1</h1><p>Fast initial entry · tap-a-face letter entry · gravity · word finder</p></div></header>
 <main>
 
 <section id="initialSection" class="card">
   <h2>Enter Starting Board</h2>
-  <div class="help">Enter the 27 starting letters exactly like v1. Each box automatically advances to the next one.</div>
+  <div class="help">Tap the first top box once. After that, each letter automatically moves to the next box, just like v1.</div>
   <div class="initial-faces">
     <div class="initial-face top">
       <h3>Top face</h3>
@@ -81,7 +81,7 @@ details{margin-top:12px;border-top:1px solid var(--line);padding-top:10px} summa
     <div class="initial-face"><h3>Left face 10–18</h3><div class="initial-grid"><input class="initial-input" data-initial-pos="10" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 10"><input class="initial-input" data-initial-pos="11" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 11"><input class="initial-input" data-initial-pos="12" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 12"><input class="initial-input" data-initial-pos="13" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 13"><input class="initial-input" data-initial-pos="14" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 14"><input class="initial-input" data-initial-pos="15" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 15"><input class="initial-input" data-initial-pos="16" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 16"><input class="initial-input" data-initial-pos="17" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 17"><input class="initial-input" data-initial-pos="18" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 18"></div></div>
     <div class="initial-face"><h3>Right face 19–27</h3><div class="initial-grid"><input class="initial-input" data-initial-pos="19" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 19"><input class="initial-input" data-initial-pos="20" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 20"><input class="initial-input" data-initial-pos="21" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 21"><input class="initial-input" data-initial-pos="22" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 22"><input class="initial-input" data-initial-pos="23" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 23"><input class="initial-input" data-initial-pos="24" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 24"><input class="initial-input" data-initial-pos="25" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 25"><input class="initial-input" data-initial-pos="26" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 26"><input class="initial-input" data-initial-pos="27" maxlength="1" inputmode="text" autocomplete="off" aria-label="Position 27"></div></div>
   </div>
-  <div class="controls"><button id="startCubeBtn" class="primary" type="button">Start Cube</button><button id="resetBtn" type="button">Clear / Reset</button></div>
+  <div class="controls"><button id="startCubeBtn" class="primary" type="button" onclick="return window.startCube ? window.startCube() : false;">Start Cube</button><button id="resetBtn" type="button">Clear / Reset</button></div><div id="initialMessage" class="initial-message"></div>
 </section>
 
 <section id="cubeSection" class="card" style="display:none">
@@ -118,6 +118,6 @@ details{margin-top:12px;border-top:1px solid var(--line);padding-top:10px} summa
   <input id="quickLetterInput" maxlength="1" inputmode="text" autocomplete="off" aria-label="Enter face letter">
 </div>
 
-<script src="dictionary.js?v=4"></script>
-<script src="solver.js?v=4"></script>
+<script src="dictionary.js?v=4.1"></script>
+<script src="solver.js?v=4.1"></script>
 </body></html>

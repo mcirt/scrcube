@@ -1,12 +1,16 @@
-# Custom 3D Boggle Solver v4
+# Custom 3D Boggle Solver v4.1
 
-Changes in v4:
-- Initial 27-letter entry restored to the fast v1-style entry screen.
-- After Start Cube, the isometric cube becomes the main interface.
-- Tap a visible face and the mobile keyboard is focused immediately.
-- Type one letter; it is saved directly to that physical cubelet face.
-- No need to scroll to a selected-face inspector.
-- Remove, Undo, and Find Words stay beside the cube.
-- Cubelet/layer details are moved into a collapsed Advanced section.
-- Script URLs include ?v=4 to reduce stale browser caching.
-- JavaScript avoids newer syntax that can cause compatibility issues in some Safari setups.
+Fixes in this build:
+
+- **Start Cube fixed and hardened.**
+- Start Cube now reports exactly which position is missing if any box is empty.
+- After successful Start Cube, the page automatically moves to the cube.
+- Initial entry restores the fast v1 workflow:
+  - first top box receives focus automatically,
+  - type one letter,
+  - focus advances to the next box automatically,
+  - continue through all 27 letters.
+- Initial entry order follows the visible board:
+  `3, 2, 6, 1, 5, 9, 4, 8, 7, 10...27`.
+- Backspace on an empty box moves to the previous box.
+- Script cache version bumped to `v=4.1` for GitHub Pages / Safari / Chrome.
