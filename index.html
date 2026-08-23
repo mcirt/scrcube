@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>3D Boggle Solver v4.5</title>
+<title>3D Boggle Solver v4.6</title>
 <style>
 :root{--bg:#f4f6f8;--line:#d8dee7;--ink:#17202a;--muted:#667085;--orange:#df7a00;--green:#15803d;--warn:#b45309;--top:#fde68a;--left:#c7e8fb;--right:#d6f0c2;--path:#ffd166}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink)}header{background:linear-gradient(135deg,#fb923c,#f97316);color:#fff;padding:15px 16px}h1{margin:0;font-size:28px}header p{margin:4px 0 0}main{max-width:980px;margin:12px auto;padding:0 10px 30px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}h2{margin:0 0 8px}.help{font-size:13px;color:var(--muted)}.faces{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.panel{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fbfcfe}.panel.top{grid-column:1/-1}.diamond{display:flex;flex-direction:column;align-items:center;gap:6px}.row{display:flex;gap:7px}.gap2{gap:62px}.gap3{gap:28px}.start-input{width:58px;height:58px;border:2px solid #aeb7c4;border-radius:10px;text-align:center;font-size:27px;font-weight:900;text-transform:uppercase;outline:none}.start-input:focus{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.18)}.start-input.bad{border-color:#dc2626;background:#fff1f2}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.grid .start-input{width:100%}.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}button{font:inherit;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 13px;font-weight:800}button.primary{background:var(--orange);border-color:var(--orange);color:#fff}button:disabled{opacity:.4}.msg{min-height:20px;margin-top:8px;font-size:13px;color:var(--muted)}.msg.ok{color:var(--green);font-weight:700}.msg.warn{color:var(--warn);font-weight:700}.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px}.chip{padding:5px 9px;border-radius:999px;border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;font-size:11px;font-weight:800}.cubebox{border:1px solid var(--line);border-radius:14px;background:linear-gradient(#fff,#f8fafc);padding:8px}#cubeSvg{display:block;width:100%;height:auto;min-height:310px}.face polygon{stroke-width:2.5;stroke-linejoin:round}.face.top polygon{fill:var(--top);stroke:#b0891e}.face.left polygon{fill:var(--left);stroke:#4292b8}.face.right polygon{fill:var(--right);stroke:#6ea254}.face.blank polygon{fill:#fff8dc;stroke-dasharray:6 5}.face.selected polygon{stroke:#2563eb;stroke-width:5}.face.path polygon{fill:var(--path)}.num{font-size:12px;font-weight:900;fill:#1f2937}.letter{font-size:31px;font-weight:900;fill:#4c1d95}.stepc{fill:#111827}.stept{fill:#fff;font-size:12px;font-weight:900}.quick{position:fixed;left:50%;bottom:12px;z-index:50;transform:translate(-50%,150%);width:min(94vw,430px);background:#111827;color:#fff;border-radius:15px;padding:10px;display:flex;gap:10px;align-items:center;transition:.15s}.quick.show{transform:translate(-50%,0)}.quick label{flex:1;font-size:12px}#faceInput{width:60px;height:48px;border:0;border-radius:9px;text-align:center;font-size:28px;font-weight:900;text-transform:uppercase}.results-head{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:7px}.empty{padding:12px 0;color:var(--muted);font-size:13px}.word-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.word{text-align:left;display:flex;flex-direction:column;padding:8px}.word small{color:var(--muted);font-size:9px}section h3{font-size:13px;color:#9a3412;margin:14px 0 6px}@media(max-width:650px){.faces{grid-template-columns:1fr}.panel.top{grid-column:auto}.word-list{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header><h1>3D Boggle Solver v4.5</h1><p>Core cube engine independent of the word dictionary</p></header>
+<header><h1>3D Boggle Solver v4.6</h1><p>Core cube engine independent of the word dictionary</p></header>
 <main>
 <section id="entryCard" class="card">
 <h2>Enter Starting Board</h2>
@@ -35,7 +35,7 @@
 <section id="cubeCard" class="card" style="display:none">
 <div class="chips"><span id="cubeCount" class="chip"></span><span id="blankCount" class="chip"></span></div>
 <h2>Cube</h2>
-<div class="help">Tap an exposed face to type/change its letter.</div>
+<div class="help">Tap any exposed face to type/change its letter. Newly exposed faces appear automatically.</div>
 <div class="cubebox"><svg id="cubeSvg" viewBox="0 0 710 470"></svg></div>
 <div class="controls"><button id="findBtn" class="primary">Find Words</button><button id="removeBtn" disabled>Remove cubelet</button><button id="undoBtn" disabled>Undo</button><button id="resetBtn">Reset</button></div>
 <div id="status" class="msg"></div>
@@ -110,24 +110,67 @@ function node(id,dir,x,y,z,pos){
           letter:(state.cubes[id].faces[dir]||"").toLowerCase()};
 }
 
+function originalViewPos(dir,x,y,z){
+  var s,p;
+
+  if(dir==="top" && z===2){
+    for(s in TOP){
+      p=TOP[s];
+      if(p.x===x && p.y===y) return +s;
+    }
+  }
+
+  if(dir==="left" && y===2){
+    for(s in LEFT){
+      p=LEFT[s];
+      if(p.x===x && p.z===z) return +s;
+    }
+  }
+
+  if(dir==="right" && x===2){
+    for(s in RIGHT){
+      p=RIGHT[s];
+      if(p.y===y && p.z===z) return +s;
+    }
+  }
+
+  return null;
+}
+
+function dynamicFaceLabel(id,dir){
+  return id + "-" + (dir==="top" ? "T" : dir==="left" ? "L" : "R");
+}
+
 function visibleFaces(){
-  var a=[],s,p,z,y,x,id,n;
-  for(s in TOP){
-    p=TOP[s]; n=null;
-    for(z=2;z>=0;z--){ id=cubeAt(p.x,p.y,z); if(id){n=node(id,"top",p.x,p.y,z,+s);break;} }
-    if(n)a.push(n);
+  var out=[],pos,id,parts,x,y,z,p;
+
+  for(pos in state.occ){
+    id=state.occ[pos];
+    parts=pos.split(",");
+    x=+parts[0];
+    y=+parts[1];
+    z=+parts[2];
+
+    /* top face: exposed if no cubelet directly above */
+    if(!cubeAt(x,y,z+1)){
+      p=originalViewPos("top",x,y,z);
+      out.push(node(id,"top",x,y,z,p!==null ? p : dynamicFaceLabel(id,"top")));
+    }
+
+    /* left face: exposed if no cubelet directly on +Y side */
+    if(!cubeAt(x,y+1,z)){
+      p=originalViewPos("left",x,y,z);
+      out.push(node(id,"left",x,y,z,p!==null ? p : dynamicFaceLabel(id,"left")));
+    }
+
+    /* right face: exposed if no cubelet directly on +X side */
+    if(!cubeAt(x+1,y,z)){
+      p=originalViewPos("right",x,y,z);
+      out.push(node(id,"right",x,y,z,p!==null ? p : dynamicFaceLabel(id,"right")));
+    }
   }
-  for(s in LEFT){
-    p=LEFT[s]; n=null;
-    for(y=2;y>=0;y--){ id=cubeAt(p.x,y,p.z); if(id){n=node(id,"left",p.x,y,p.z,+s);break;} }
-    if(n)a.push(n);
-  }
-  for(s in RIGHT){
-    p=RIGHT[s]; n=null;
-    for(x=2;x>=0;x--){ id=cubeAt(x,p.y,p.z); if(id){n=node(id,"right",x,p.y,p.z,+s);break;} }
-    if(n)a.push(n);
-  }
-  return a;
+
+  return out;
 }
 
 function nodeByPos(pos){
