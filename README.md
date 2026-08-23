@@ -1,14 +1,11 @@
-# Custom 3D Boggle Solver v4.3 — hardwired diagnostic/fix
+# 3D Boggle Solver v4.5
 
-This build makes the two failing controls independent of normal app initialization.
+This build changes the architecture:
 
-- Every starting input has a direct inline `oninput="v43Advance(this)"`.
-- Auto-advance uses the visual order:
-  3,2,6,1,5,9,4,8,7, then 10-27.
-- Start Cube has a direct inline `onclick="v43Start()"`.
-- A visible engine-status line reports:
-  - `Starting-entry JavaScript: ACTIVE`
-  - then `Cube engine: READY`
-  - or an explicit JavaScript error if the cube engine failed.
+- Start Cube, visual cube, tap-a-face editing, removal, gravity, and undo are all inline in `index.html`.
+- Those controls do NOT depend on `solver.js`.
+- There is no `solver.js` in this build.
+- `dictionary.js` is only used by Find Words.
+- If `dictionary.js` fails to load, the cube still works and displays a dictionary warning only when Find Words is pressed.
 
-This build also keeps the exact simple v1 input listener as a fallback.
+This isolates the previous failure and makes Start Cube independent of the word-search dependency.
