@@ -386,8 +386,14 @@ function initialInputsToCube() {
   highlightedPathKeys = [];
   saveLocal();
 
+  document.getElementById("initialSection").style.display = "none";
+  document.getElementById("cubeSection").style.display = "block";
+
   setInitialMessage("Starting cube loaded.", "ok");
-  renderAll();
+  renderStats();
+  renderCubeSvg();
+  renderQuickBar();
+  renderAdvanced();
   clearResults();
   setStatus("Starting cube loaded. Tap any exposed face to enter or change a letter.", "ok");
 
@@ -434,11 +440,8 @@ function wireInitialInputs() {
       setInitialMessage("", "");
 
       if (cleaned && inputs[idx+1]) {
-        // tiny delay makes iOS keyboard/focus movement more reliable
-        setTimeout(function(){
-          inputs[idx+1].focus();
-          inputs[idx+1].select();
-        }, 0);
+        inputs[idx+1].focus();
+        inputs[idx+1].select();
       }
     });
 
@@ -461,6 +464,16 @@ function wireInitialInputs() {
       inputs[0].focus();
       inputs[0].select();
     }, 250);
+  }
+}
+
+
+function focusFirstInitialBox() {
+  if (started) return;
+  var order = initialEntryOrder();
+  var first = document.querySelector('[data-initial-pos="'+order[0]+'"]');
+  if (first && !(document.activeElement && document.activeElement.classList.contains("initial-input"))) {
+    try { first.focus(); first.select(); } catch(e) {}
   }
 }
 
@@ -745,12 +758,22 @@ function init() {
 
   wireInitialInputs();
 
+  var initialSection = document.getElementById("initialSection");
+  if (initialSection) {
+    initialSection.addEventListener("click", function(e){
+      if (e.target && e.target.classList && e.target.classList.contains("initial-input")) return;
+      focusFirstInitialBox();
+    }, {once:true});
+  }
+
   var startBtn = document.getElementById("startCubeBtn");
-  if (startBtn) startBtn.addEventListener("click", function(e){
-    e.preventDefault();
-    initialInputsToCube();
-  });
-  window.startCube = initialInputsToCube;
+  if (startBtn) {
+    startBtn.addEventListener("click", function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      initialInputsToCube();
+    });
+  }
   document.getElementById("findBtn").addEventListener("click",runSolver);
   document.getElementById("removeBtn").addEventListener("click",removeSelectedCube);
   document.getElementById("undoBtn").addEventListener("click",undo);

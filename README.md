@@ -1,16 +1,9 @@
-# Custom 3D Boggle Solver v4.1
+# Custom 3D Boggle Solver v4.2
 
-Fixes in this build:
+Reported failures fixed in this build:
 
-- **Start Cube fixed and hardened.**
-- Start Cube now reports exactly which position is missing if any box is empty.
-- After successful Start Cube, the page automatically moves to the cube.
-- Initial entry restores the fast v1 workflow:
-  - first top box receives focus automatically,
-  - type one letter,
-  - focus advances to the next box automatically,
-  - continue through all 27 letters.
-- Initial entry order follows the visible board:
-  `3, 2, 6, 1, 5, 9, 4, 8, 7, 10...27`.
-- Backspace on an empty box moves to the previous box.
-- Script cache version bumped to `v=4.1` for GitHub Pages / Safari / Chrome.
+- Initial entry now advances to the next box synchronously after each typed letter.
+- Start Cube explicitly hides the entry form, shows the cube, and renders it immediately.
+- The dictionary and solver are embedded directly in `index.html`, preventing GitHub Pages or a browser from mixing a new HTML file with an old cached JS file.
+
+Important: upload the NEW `index.html` from this ZIP.
