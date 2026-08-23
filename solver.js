@@ -335,6 +335,7 @@ function initialEntryOrder() {
 }
 
 function initialInputsToCube() {
+  if (!state) state = newState();
   var order = initialEntryOrder();
   var i,pos,input,val,node;
   var missing = [];
@@ -386,14 +387,8 @@ function initialInputsToCube() {
   highlightedPathKeys = [];
   saveLocal();
 
-  document.getElementById("initialSection").style.display = "none";
-  document.getElementById("cubeSection").style.display = "block";
-
   setInitialMessage("Starting cube loaded.", "ok");
-  renderStats();
-  renderCubeSvg();
-  renderQuickBar();
-  renderAdvanced();
+  renderAll();
   clearResults();
   setStatus("Starting cube loaded. Tap any exposed face to enter or change a letter.", "ok");
 
@@ -413,6 +408,19 @@ function setInitialMessage(message, cls) {
   el.className = "initial-message " + (cls || "");
 }
 
+window.v43RunStartCube = function() {
+  try {
+    return initialInputsToCube();
+  } catch (err) {
+    var s = document.getElementById("engineStatus");
+    if (s) {
+      s.textContent = "START ERROR: " + err.message;
+      s.className = "initial-message warn";
+    }
+    throw err;
+  }
+};
+
 function populateInitialInputsFromState() {
   var pos,node,input,val;
   for (pos=1; pos<=27; pos++) {
@@ -424,57 +432,16 @@ function populateInitialInputsFromState() {
 }
 
 function wireInitialInputs() {
-  var order = initialEntryOrder();
-  var inputs = [];
-
-  order.forEach(function(pos){
-    var inp = document.querySelector('[data-initial-pos="'+pos+'"]');
-    if (inp) inputs.push(inp);
-  });
-
-  inputs.forEach(function(inp, idx){
-    inp.addEventListener("input", function(){
-      var cleaned = String(inp.value || "").replace(/[^A-Za-z]/g,"").slice(-1).toUpperCase();
-      inp.value = cleaned;
-      inp.classList.remove("missing");
-      setInitialMessage("", "");
-
-      if (cleaned && inputs[idx+1]) {
-        inputs[idx+1].focus();
-        inputs[idx+1].select();
-      }
+  var inputs = Array.prototype.slice.call(document.querySelectorAll(".initial-input"));
+  inputs.forEach(function(input, idx) {
+    input.addEventListener("input", function() {
+      input.value = input.value.replace(/[^a-zA-Z]/g, "").slice(-1).toUpperCase();
+      if (input.value && inputs[idx + 1]) inputs[idx + 1].focus();
     });
-
-    inp.addEventListener("focus", function(){
-      try { inp.select(); } catch(e) {}
-    });
-
-    inp.addEventListener("keydown", function(e){
-      if ((e.key === "Backspace" || e.key === "Delete") && !inp.value && idx > 0) {
-        e.preventDefault();
-        inputs[idx-1].focus();
-        inputs[idx-1].select();
-      }
+    input.addEventListener("focus", function() {
+      try { input.select(); } catch(e) {}
     });
   });
-
-  // v1-style: keyboard starts at the first top tile automatically.
-  if (!started && inputs.length) {
-    setTimeout(function(){
-      inputs[0].focus();
-      inputs[0].select();
-    }, 250);
-  }
-}
-
-
-function focusFirstInitialBox() {
-  if (started) return;
-  var order = initialEntryOrder();
-  var first = document.querySelector('[data-initial-pos="'+order[0]+'"]');
-  if (first && !(document.activeElement && document.activeElement.classList.contains("initial-input"))) {
-    try { first.focus(); first.select(); } catch(e) {}
-  }
 }
 
 function quickInputForNode(node) {
@@ -758,22 +725,12 @@ function init() {
 
   wireInitialInputs();
 
-  var initialSection = document.getElementById("initialSection");
-  if (initialSection) {
-    initialSection.addEventListener("click", function(e){
-      if (e.target && e.target.classList && e.target.classList.contains("initial-input")) return;
-      focusFirstInitialBox();
-    }, {once:true});
-  }
-
   var startBtn = document.getElementById("startCubeBtn");
-  if (startBtn) {
-    startBtn.addEventListener("click", function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      initialInputsToCube();
-    });
-  }
+  if (startBtn) startBtn.addEventListener("click", function(e){
+    e.preventDefault();
+    initialInputsToCube();
+  });
+  window.startCube = initialInputsToCube;
   document.getElementById("findBtn").addEventListener("click",runSolver);
   document.getElementById("removeBtn").addEventListener("click",removeSelectedCube);
   document.getElementById("undoBtn").addEventListener("click",undo);
@@ -802,6 +759,11 @@ function init() {
   renderAll();
   clearResults();
   setStatus(started ? "Tap a face to enter or change its letter." : "Enter the 27 starting letters, just like v1.","ok");
+  var health = document.getElementById("engineStatus");
+  if (health) {
+    health.textContent = "Cube engine: READY";
+    health.className = "initial-message ok";
+  }
 }
 
 document.addEventListener("DOMContentLoaded",init);

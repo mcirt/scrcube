@@ -1,9 +1,14 @@
-# Custom 3D Boggle Solver v4.2
+# Custom 3D Boggle Solver v4.3 — hardwired diagnostic/fix
 
-Reported failures fixed in this build:
+This build makes the two failing controls independent of normal app initialization.
 
-- Initial entry now advances to the next box synchronously after each typed letter.
-- Start Cube explicitly hides the entry form, shows the cube, and renders it immediately.
-- The dictionary and solver are embedded directly in `index.html`, preventing GitHub Pages or a browser from mixing a new HTML file with an old cached JS file.
+- Every starting input has a direct inline `oninput="v43Advance(this)"`.
+- Auto-advance uses the visual order:
+  3,2,6,1,5,9,4,8,7, then 10-27.
+- Start Cube has a direct inline `onclick="v43Start()"`.
+- A visible engine-status line reports:
+  - `Starting-entry JavaScript: ACTIVE`
+  - then `Cube engine: READY`
+  - or an explicit JavaScript error if the cube engine failed.
 
-Important: upload the NEW `index.html` from this ZIP.
+This build also keeps the exact simple v1 input listener as a fallback.
